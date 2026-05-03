@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native folders (Chỉ đẩy code JS, không đẩy code native tự sinh)
+/ios
+/android
+
+# local env files - CỰC KỲ QUAN TRỌNG ĐỂ BẢO MẬT
+.env
+.env.local
+.env*.local
+
+# debug & logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS & OS secrets
+.DS_Store
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# typescript
+*.tsbuildinfo
