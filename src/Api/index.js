@@ -1,16 +1,21 @@
-// 1. Nhập hàm kết nối từ mongoClient
-import { connectDatabase } from './mongoClient';
+import express from 'express';
+import { connectDatabase } from './mongoClient.js';
+import { register, login } from '../backend/Controller/authController.js';
+import { getRandomQuestions } from '../backend/Service/questionService.js';
 
-// 2. Kích hoạt kết nối (Chỉ cần 1 lần duy nhất tại đây)
+const router = express.Router();
+
+// Kết nối DB khi API khởi động
 connectDatabase();
 
-// 3. Xuất các hàm API để h sử dụng ở Frontend
+// Route cho Nhung làm Auth
+router.post('/auth/register', register);
+router.post('/auth/login', login);
 
-export const fetchQuizQuestions = async () => {
-   //  gọi logic từ backend/Service ở đây
-};
+// Route cho Vinh làm Game
+router.get('/questions/:category', async (req, res) => {
+    const questions = await getRandomQuestions(req.params.category);
+    res.json(questions);
+});
 
-// Ví dụ: Hàm xử lý đăng nhập cho Thảo/Nhung
-export const loginUser = async (credentials) => {
-   // Thảo gọi logic từ backend/Controller ở đây
-};
+export default router;
