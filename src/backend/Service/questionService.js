@@ -1,12 +1,9 @@
-import Question from '../Model/Question.js';
+import Question from '../Model/Question.js'; // Import từ file Model vừa tạo ở Bước 1
 import { BaseRepository } from '../Repositories/baseRepository.js';
 
 const questionRepo = new BaseRepository(Question);
 
-export const getRandomQuestions = async (category, limit = 10) => {
-    // Sử dụng aggregate để lấy ngẫu nhiên câu hỏi từ MongoDB
-    return await Question.aggregate([
-        { $match: { category: category } },
-        { $sample: { size: limit } }
-    ]);
+// Hàm export chuẩn để file API có thể gọi được
+export const addQuestion = async (data) => {
+    return await questionRepo.create(data);
 };

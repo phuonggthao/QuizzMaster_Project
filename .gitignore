@@ -12,9 +12,9 @@ expo-env.d.ts
 /android
 
 # local env files - CỰC KỲ QUAN TRỌNG ĐỂ BẢO MẬT
-.env
-.env.local
-.env*.local
+#.env
+#.env.local
+#.env*.local
 
 # debug & logs
 npm-debug.*

@@ -1,11 +1,15 @@
+// src/backend/Model/User.js
 import mongoose from 'mongoose';
 
-const UserSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true },
-    fullName: { type: String, required: true },
-    totalScore: { type: Number, default: 0 },
-    level: { type: Number, default: 1 }
+    role: { 
+        type: String, 
+        enum: ['User', 'Admin'], 
+        default: 'User' // Mặc định tài khoản đăng ký mới sẽ là Người chơi (User)
+    }
 }, { timestamps: true });
 
-export default mongoose.model('User', UserSchema);
+const User = mongoose.model('User', userSchema);
+export default User;
