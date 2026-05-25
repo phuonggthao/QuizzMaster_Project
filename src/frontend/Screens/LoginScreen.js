@@ -28,6 +28,7 @@ export default function LoginScreen({ navigation }) {
             if (response.ok) {
                 await AsyncStorage.setItem('userToken', data.token);
                 if (data.user?._id) await AsyncStorage.setItem('userId', data.user._id);
+                await AsyncStorage.setItem('userInfo', JSON.stringify(data.user));
                 if (data.user.role === 'Admin') {
                     navigation.replace('Admin');
                 } else {
@@ -50,7 +51,7 @@ export default function LoginScreen({ navigation }) {
         >
             <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
 
-            {/* Logo / Header */}
+            {/* Logo */}
             <View style={styles.logoArea}>
                 <View style={styles.logoCircle}>
                     <Text style={styles.logoEmoji}>🎮</Text>
@@ -135,25 +136,20 @@ const styles = StyleSheet.create({
         fontSize: 34, fontWeight: '900',
         color: Colors.textLight, letterSpacing: 1,
     },
-    tagline: {
-        fontSize: 14, color: Colors.textMuted, marginTop: 4,
-    },
+    tagline: { fontSize: 14, color: Colors.textMuted, marginTop: 4 },
     card: {
         backgroundColor: Colors.bgCard,
-        borderRadius: 24,
-        padding: 28,
-        borderWidth: 1,
-        borderColor: Colors.border,
+        borderRadius: 24, padding: 28,
+        borderWidth: 1, borderColor: Colors.border,
     },
     cardTitle: {
         fontSize: 22, fontWeight: '800',
-        color: Colors.textLight, marginBottom: 22,
-        textAlign: 'center',
+        color: Colors.textLight, marginBottom: 22, textAlign: 'center',
     },
     inputWrapper: { marginBottom: 16 },
     inputLabel: {
-        fontSize: 13, fontWeight: '700',
-        color: Colors.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
+        fontSize: 13, fontWeight: '700', color: Colors.textMuted,
+        marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
     },
     input: {
         backgroundColor: 'rgba(255,255,255,0.1)',
