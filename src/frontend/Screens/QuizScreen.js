@@ -5,33 +5,30 @@ import { useQuiz } from '../Hooks/useQuiz';
 export default function QuizScreen({ route, navigation }) {
     const { gameType } = route.params || { gameType: 'Quiz' };
     const { questions, loading, error, fetchQuestions } = useQuiz(gameType);
-    
-    // Các trạng thái quản lý trò chơi
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
-    const [textInput, setTextInput] = useState(''); 
-    const [isFlipped, setIsFlipped] = useState(false); // Riêng cho trò chơi Flashcard
+    const [textInput, setTextInput] = useState('');
+    const [isFlipped, setIsFlipped] = useState(false);
 
-    // Hệ thống đếm ngược thời gian (10 giây)
     const [timeLeft, setTimeLeft] = useState(10);
     const timerRef = useRef(null);
 
     useEffect(() => {
         fetchQuestions();
-        return () => clearInterval(timerRef.current); // Xóa bộ đếm khi thoát màn hình
+        return () => clearInterval(timerRef.current);
     }, []);
 
-    // Hiệu ứng đếm ngược chạy mỗi khi chuyển sang câu hỏi mới
     useEffect(() => {
         if (questions.length > 0 && !loading) {
-            setTimeLeft(10); // Đặt lại 10 giây cho câu mới
+            setTimeLeft(10);
             if (timerRef.current) clearInterval(timerRef.current);
 
             timerRef.current = setInterval(() => {
                 setTimeLeft((prev) => {
                     if (prev <= 1) {
                         clearInterval(timerRef.current);
-                        handleTimeOut(); // Xử lý khi hết giờ
+                        handleTimeOut();
                         return 0;
                     }
                     return prev - 1;
@@ -41,14 +38,9 @@ export default function QuizScreen({ route, navigation }) {
         return () => clearInterval(timerRef.current);
     }, [currentIndex, questions, loading]);
 
-    // Hàm tự động kích hoạt khi Thảo hết 10 giây
     const handleTimeOut = () => {
         Alert.alert("Hết Giờ Rồi! ⏳", `Thời gian 10 giây đã hết. Đáp án đúng là: ${questions[currentIndex]?.correctAnswer}`, [
-<<<<<<< HEAD
             { text: "Tiếp tục", onPress: () => nextQuestion(score) }
-=======
-            { text: "Tiếp tục", onPress: () => nextQuestion(false) }
->>>>>>> main
         ]);
     };
 
@@ -74,9 +66,8 @@ export default function QuizScreen({ route, navigation }) {
 
     const currentQuestion = questions[currentIndex];
 
-    // Hàm xử lý kiểm tra đáp án khi người chơi chủ động trả lời
     const handleAnswer = (userAnswer) => {
-        if (timerRef.current) clearInterval(timerRef.current); // Dừng đếm ngược khi đã bấm chọn
+        if (timerRef.current) clearInterval(timerRef.current);
 
         let isCorrect = false;
         switch (gameType) {
@@ -84,71 +75,45 @@ export default function QuizScreen({ route, navigation }) {
             case 'TrueFalse':
                 isCorrect = String(userAnswer).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
                 break;
-                
             case 'FillInBlank':
             case 'PictureQuiz':
             case 'WordScramble':
                 isCorrect = String(textInput).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
                 break;
-
             default:
-                isCorrect = true; 
+                isCorrect = true;
                 break;
         }
 
         if (isCorrect) {
-<<<<<<< HEAD
             const newScore = score + 10;
             setScore(newScore);
-            Alert.alert("Chính Xác! 🎉", "Chúc mừng Thảo đã trả lời đúng.", [
+            Alert.alert("Chính Xác! 🎉", "Chúc mừng bạn đã trả lời đúng.", [
                 { text: "Tiếp theo", onPress: () => nextQuestion(newScore) }
             ]);
         } else {
             Alert.alert("Sai Mất Rồi 😢", `Đáp án đúng là: ${currentQuestion.correctAnswer}`, [
                 { text: "Tiếp theo", onPress: () => nextQuestion(score) }
             ]);
-        }    };
-
-    // Hàm chuyển sang câu hỏi tiếp theo — nhận điểm thực tế thay vì boolean
-    const nextQuestion = (currentScore) => {
-=======
-            setScore(prev => prev + 10);
-            Alert.alert("Chính Xác! 🎉", "Chúc mừng Thảo đã trả lời đúng.", [
-                { text: "Tiếp theo", onPress: () => nextQuestion(true) }
-            ]);
-        } else {
-            Alert.alert("Sai Mất Rồi 😢", `Đáp án đúng là: ${currentQuestion.correctAnswer}`, [
-                { text: "Tiếp theo", onPress: () => nextQuestion(false) }
-            ]);
         }
     };
 
-    // Hàm chuyển sang câu hỏi tiếp theo
-    const nextQuestion = (wasCorrect) => {
-        const finalScore = wasCorrect ? score + 10 : score;
-        
-        // ĐÃ SỬA: Thay đổi bước nhảy từ tăng cộng thêm 10 thành tăng cộng thêm 1 câu
->>>>>>> main
+    // Nhận điểm thực tế thay vì boolean — tránh double-count
+    const nextQuestion = (currentScore) => {
         if (currentIndex < questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
             setTextInput('');
-            setIsFlipped(false); // Reset trạng thái lật thẻ cho câu tiếp theo
+            setIsFlipped(false);
         } else {
             if (timerRef.current) clearInterval(timerRef.current);
-<<<<<<< HEAD
-            Alert.alert("Trò Chơi Kết Thúc! 🏁", `Tổng số điểm Thảo đạt được: ${currentScore} điểm.`, [
-=======
-            Alert.alert("Trò Chơi Kết Thúc! 🏁", `Tổng số điểm Thảo đạt được: ${finalScore} điểm.`, [
->>>>>>> main
+            Alert.alert("Trò Chơi Kết Thúc! 🏁", `Tổng số điểm bạn đạt được: ${currentScore} điểm.`, [
                 { text: "Hoàn thành", onPress: () => navigation.replace('Home') }
             ]);
         }
     };
 
-    // --- RENDER GIAO DIỆN PHÙ HỢP CHO TỪNG LOẠI GAME ---
     const renderGameUI = () => {
         switch (gameType) {
-            // 1 & 8: Trắc nghiệm lựa chọn (Quiz) & Đúng Sai (True/False)
             case 'Quiz':
             case 'TrueFalse':
                 return (
@@ -162,7 +127,6 @@ export default function QuizScreen({ route, navigation }) {
                     </View>
                 );
 
-            // 4: Thẻ Bài Flashcard tương tác lật mặt (ĐÃ NÂNG CẤP)
             case 'Flashcard':
                 return (
                     <View style={styles.uiContainer}>
@@ -181,34 +145,25 @@ export default function QuizScreen({ route, navigation }) {
                                 </View>
                             )}
                         </TouchableOpacity>
-                        
                         <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(currentQuestion.correctAnswer)}>
                             <Text style={styles.submitBtnText}>Đã thuộc lòng câu này! ✓</Text>
-<<<<<<< HEAD
-                        </TouchableOpacity>                    </View>
-=======
                         </TouchableOpacity>
                     </View>
->>>>>>> main
                 );
 
-            // 7: Nhìn hình đoán chữ (ĐÃ NÂNG CẤP LÊN HÌNH ẢNH URL THẬT)
             case 'PictureQuiz':
                 return (
                     <View style={styles.uiContainer}>
                         <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
-                        
-                        {/* Kiểm tra hiển thị ảnh trực tiếp từ link URL trong Database */}
                         {currentQuestion.imageUrl ? (
                             <Image source={{ uri: currentQuestion.imageUrl }} style={styles.quizImage} />
                         ) : currentQuestion.imageName ? (
                             <Text style={styles.imagePlaceholder}>🖼️ [Ảnh mẫu: {currentQuestion.imageName}]</Text>
                         ) : null}
-
-                        <TextInput 
-                            style={styles.input} 
-                            placeholder="Nhập tên từ khóa hình ảnh..." 
-                            value={textInput} 
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Nhập tên từ khóa hình ảnh..."
+                            value={textInput}
                             onChangeText={setTextInput}
                         />
                         <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(textInput)}>
@@ -217,16 +172,15 @@ export default function QuizScreen({ route, navigation }) {
                     </View>
                 );
 
-            // 5: Từ xáo trộn (Word Scramble)
             case 'WordScramble':
                 return (
                     <View style={styles.uiContainer}>
                         <Text style={styles.hintText}>Chủ đề câu hỏi: {currentQuestion.category}</Text>
                         <Text style={styles.scrambledWordText}>🧩 Từ xáo trộn: {currentQuestion.questionText || "EXOP"}</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            placeholder="Sắp xếp lại từ đúng..." 
-                            value={textInput} 
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Sắp xếp lại từ đúng..."
+                            value={textInput}
                             onChangeText={setTextInput}
                         />
                         <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(textInput)}>
@@ -235,7 +189,6 @@ export default function QuizScreen({ route, navigation }) {
                     </View>
                 );
 
-            // Giao diện mặc định cho các trò chơi đặc biệt khác (Matching, OpenBox...)
             default:
                 return (
                     <View style={styles.uiContainer}>
@@ -251,21 +204,15 @@ export default function QuizScreen({ route, navigation }) {
 
     return (
         <View style={styles.container}>
-            {/* Thanh hiển thị tiến độ, Đếm ngược thời gian và Điểm số */}
             <View style={styles.headerRow}>
                 <Text style={styles.headerText}>Câu hỏi: {currentIndex + 1}/{questions.length}</Text>
-                
-                {/* Widget đếm ngược nhấp nháy đỏ khi sắp hết giờ */}
                 <View style={styles.timerBadge}>
                     <Text style={[styles.timerText, timeLeft <= 3 ? { color: '#E91E63' } : { color: '#2196F3' }]}>
                         ⏱️ {timeLeft}s
                     </Text>
                 </View>
-
                 <Text style={[styles.headerText, { color: '#FF9800' }]}>Điểm: {score}</Text>
             </View>
-
-            {/* Khung nội dung chính của màn chơi */}
             <View style={styles.card}>
                 {renderGameUI()}
             </View>
@@ -297,8 +244,6 @@ const styles = StyleSheet.create({
     errorText: { fontSize: 16, color: 'red', textAlign: 'center', marginBottom: 20 },
     backBtn: { backgroundColor: '#333', padding: 12, borderRadius: 8 },
     backBtnText: { color: '#fff', fontWeight: 'bold' },
-    
-    // Khung CSS bổ sung cho giao diện thẻ bài Flashcard
     flashcardContainer: { width: '100%', height: 220, marginBottom: 20 },
     flashcardInner: { flex: 1, backgroundColor: '#2196F3', padding: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#1976D2' },
     flashcardBack: { backgroundColor: '#FF9800', borderColor: '#F57C00' },
