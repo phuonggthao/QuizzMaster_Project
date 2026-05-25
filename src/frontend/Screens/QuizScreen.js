@@ -44,7 +44,11 @@ export default function QuizScreen({ route, navigation }) {
     // Hàm tự động kích hoạt khi Thảo hết 10 giây
     const handleTimeOut = () => {
         Alert.alert("Hết Giờ Rồi! ⏳", `Thời gian 10 giây đã hết. Đáp án đúng là: ${questions[currentIndex]?.correctAnswer}`, [
+<<<<<<< HEAD
             { text: "Tiếp tục", onPress: () => nextQuestion(score) }
+=======
+            { text: "Tiếp tục", onPress: () => nextQuestion(false) }
+>>>>>>> main
         ]);
     };
 
@@ -93,6 +97,7 @@ export default function QuizScreen({ route, navigation }) {
         }
 
         if (isCorrect) {
+<<<<<<< HEAD
             const newScore = score + 10;
             setScore(newScore);
             Alert.alert("Chính Xác! 🎉", "Chúc mừng Thảo đã trả lời đúng.", [
@@ -106,13 +111,35 @@ export default function QuizScreen({ route, navigation }) {
 
     // Hàm chuyển sang câu hỏi tiếp theo — nhận điểm thực tế thay vì boolean
     const nextQuestion = (currentScore) => {
+=======
+            setScore(prev => prev + 10);
+            Alert.alert("Chính Xác! 🎉", "Chúc mừng Thảo đã trả lời đúng.", [
+                { text: "Tiếp theo", onPress: () => nextQuestion(true) }
+            ]);
+        } else {
+            Alert.alert("Sai Mất Rồi 😢", `Đáp án đúng là: ${currentQuestion.correctAnswer}`, [
+                { text: "Tiếp theo", onPress: () => nextQuestion(false) }
+            ]);
+        }
+    };
+
+    // Hàm chuyển sang câu hỏi tiếp theo
+    const nextQuestion = (wasCorrect) => {
+        const finalScore = wasCorrect ? score + 10 : score;
+        
+        // ĐÃ SỬA: Thay đổi bước nhảy từ tăng cộng thêm 10 thành tăng cộng thêm 1 câu
+>>>>>>> main
         if (currentIndex < questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
             setTextInput('');
             setIsFlipped(false); // Reset trạng thái lật thẻ cho câu tiếp theo
         } else {
             if (timerRef.current) clearInterval(timerRef.current);
+<<<<<<< HEAD
             Alert.alert("Trò Chơi Kết Thúc! 🏁", `Tổng số điểm Thảo đạt được: ${currentScore} điểm.`, [
+=======
+            Alert.alert("Trò Chơi Kết Thúc! 🏁", `Tổng số điểm Thảo đạt được: ${finalScore} điểm.`, [
+>>>>>>> main
                 { text: "Hoàn thành", onPress: () => navigation.replace('Home') }
             ]);
         }
@@ -157,7 +184,12 @@ export default function QuizScreen({ route, navigation }) {
                         
                         <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(currentQuestion.correctAnswer)}>
                             <Text style={styles.submitBtnText}>Đã thuộc lòng câu này! ✓</Text>
+<<<<<<< HEAD
                         </TouchableOpacity>                    </View>
+=======
+                        </TouchableOpacity>
+                    </View>
+>>>>>>> main
                 );
 
             // 7: Nhìn hình đoán chữ (ĐÃ NÂNG CẤP LÊN HÌNH ẢNH URL THẬT)

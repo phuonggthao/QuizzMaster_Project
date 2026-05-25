@@ -1,4 +1,5 @@
 // E:\QuizzMaster_Project\src\frontend\config.js
+<<<<<<< HEAD
 //
 // ⚠️  ĐỔI IP NÀY THÀNH IP MÁY TÍNH ĐANG CHẠY BACKEND
 //
@@ -14,3 +15,9 @@ const BACKEND_PORT = '5000';
 const BASE_URL = `http://${BACKEND_IP}:${BACKEND_PORT}/api`;
 
 export default BASE_URL;
+=======
+
+const BASE_URL = 'http://10.0.142.87:5000/api'; 
+
+export default BASE_URL;
+>>>>>>> main

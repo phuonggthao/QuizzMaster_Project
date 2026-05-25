@@ -1,12 +1,26 @@
 import mongoose from 'mongoose';
+<<<<<<< HEAD
 <<<<<<< Updated upstream
+=======
+import dotenv from 'dotenv';
+
+// Kích hoạt dotenv để đọc file .env
+dotenv.config();
+>>>>>>> main
 
 export const connectDatabase = async () => {
   try {
-    //  đang dùng link từ file .env để bảo mật dự án
-    await mongoose.connect(process.env.MONGO_URI);
+    // Đảm bảo MONGO_URI trong file .env đã thay <db_password> bằng 123456ABC
+    const uri = process.env.MONGO_URI;
+    
+    if (!uri) {
+      throw new Error("Chưa tìm thấy MONGO_URI trong file .env !");
+    }
+    console.log("Chuỗi URI đang đọc là:", uri);
+    await mongoose.connect(uri);
     console.log("--- Team QuizzMaster đã kết nối Database thành công! ---");
   } catch (error) {
+<<<<<<< HEAD
     console.error("Lỗi rồi, kiểm tra lại mạng hoặc pass nhé:", error);
 =======
 import dotenv from 'dotenv';
@@ -32,5 +46,8 @@ export const connectDatabase = async () => {
     console.error("❌ Lỗi kết nối MongoDB:", error.message);
     process.exit(1); // Dừng server nếu không kết nối được DB
 >>>>>>> Stashed changes
+=======
+    console.error("❌ Lỗi rồi, kiểm tra lại mạng hoặc pass nhé:", error.message);
+>>>>>>> main
   }
 };

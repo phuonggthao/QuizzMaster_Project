@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const QuestionSchema = new mongoose.Schema({
+<<<<<<< HEAD
 <<<<<<< Updated upstream
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }, // Thuộc chủ đề nào
   gameType: { type: String, required: true }, // 'Quiz', 'Matching', 'FlipCard'...
@@ -10,6 +11,8 @@ const QuestionSchema = new mongoose.Schema({
   image: { type: String },                    // Dùng cho Picture Quiz
   timer: { type: Number, default: 30 }        // Thời gian riêng cho mỗi câu
 =======
+=======
+>>>>>>> main
     gameType: { 
         type: String, 
         required: true,
@@ -29,7 +32,10 @@ const QuestionSchema = new mongoose.Schema({
     category: { type: String, required: true },     // Ví dụ: Toán, Lý, Tiếng Anh, Logic
     questionText: { type: String },                 // Nội dung câu hỏi hiển thị dạng văn bản
     imageName: { type: String },                    // Tên file ảnh từ bộ nhớ lưu trữ
+<<<<<<< HEAD
     imageUrl: { type: String },                     // URL ảnh trực tiếp (dùng cho PictureQuiz, FindMatch)
+=======
+>>>>>>> main
     options: [{ type: String }],                    // Danh sách các đáp án hoặc file ảnh lựa chọn
     correctAnswer: { type: String, required: true }, // Đáp án đúng chuẩn dùng để so khớp logic
     difficulty: { type: String, default: 'Easy' },
@@ -49,7 +55,10 @@ const QuestionSchema = new mongoose.Schema({
 }, { 
     timestamps: true,
     collection: 'questions' // Ép chuẩn đồng bộ vào bảng tên 'questions' viết thường
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> main
 });
 
 export default mongoose.model('Question', QuestionSchema);
