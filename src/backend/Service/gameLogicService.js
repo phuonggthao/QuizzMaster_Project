@@ -75,15 +75,22 @@ export const GameLogics = {
 
 /**
  * Hàm lấy danh sách câu hỏi ngẫu nhiên từ MongoDB Atlas theo gameType
- * Hàm này đứng độc lập để bổ sung chính xác cho file src/Api/index.js gọi import
+ * Đã thêm bước kiểm tra an toàn nếu không tìm thấy dữ liệu
  */
 export const getGameQuestions = async (gameType, limit = 10) => {
     try {
-        // Sử dụng $sample của MongoDB để bốc ngẫu nhiên câu hỏi tránh trùng lặp nhàm chán
+        // Sử dụng $sample của MongoDB để bốc ngẫu nhiên câu hỏi
         const questions = await Question.aggregate([
-            { $match: { gameType: gameType } }, // Lọc đúng loại trò chơi (ví dụ: Quiz, TrueFalse...)
-            { $sample: { size: limit } }        // Bốc ngẫu nhiên tối đa 10 câu
+            { $match: { gameType: gameType } }, 
+            { $sample: { size: limit } }
         ]);
+
+        // Kiểm tra nếu không có câu hỏi nào được trả về để tránh lỗi phía Frontend
+        if (!questions || questions.length === 0) {
+            console.warn(`⚠️ Không tìm thấy câu hỏi cho trò chơi: ${gameType}`);
+            return []; // Trả về mảng rỗng thay vì ném lỗi
+        }
+        
         return questions;
     } catch (error) {
         console.error(`❌ Lỗi khi lấy câu hỏi cho trò chơi ${gameType}:`, error.message);
