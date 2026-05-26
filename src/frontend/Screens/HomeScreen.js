@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, FlatList, SafeAreaView } from 'react-native';
 import { Card, Title, Paragraph, Button, Text } from 'react-native-paper';
-// Import helper để xử lý âm thanh
-import { playSound } from '../../utils/SoundManager'; 
+// Đã cập nhật lại đường dẫn import đúng theo vị trí src/SoundManager.js
+import { playSound } from '../../SoundManager'; 
 
 const GAMES_LIST = [
   { id: '1', title: 'Trắc Nghiệm', type: 'Quiz', desc: 'Chọn đáp án đúng' },
@@ -39,7 +39,6 @@ export default function HomeScreen({ navigation }) {
               <Button 
                 mode="contained" 
                 onPress={() => {
-                  // Gọi âm thanh khi nhấn nút
                   playSound(require('../../../assets/sounds/click.mp3')); 
                   navigation.navigate('Quiz', { gameType: item.type });
                 }}
