@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, FlatList, SafeAreaView } from 'react-native';
 import { Card, Title, Paragraph, Button, Text } from 'react-native-paper';
+// Import helper để xử lý âm thanh
+import { playSound } from '../../utils/SoundManager'; 
 
 const GAMES_LIST = [
   { id: '1', title: 'Trắc Nghiệm', type: 'Quiz', desc: 'Chọn đáp án đúng' },
@@ -25,7 +27,7 @@ export default function HomeScreen({ navigation }) {
       <FlatList
         data={GAMES_LIST}
         keyExtractor={(item) => item.id}
-        numColumns={2} // Grid 2 cột
+        numColumns={2}
         columnWrapperStyle={styles.row}
         renderItem={({ item }) => (
           <Card style={styles.card} elevation={2}>
@@ -36,7 +38,11 @@ export default function HomeScreen({ navigation }) {
             <Card.Actions>
               <Button 
                 mode="contained" 
-                onPress={() => navigation.navigate('Quiz', { gameType: item.type })}
+                onPress={() => {
+                  // Gọi âm thanh khi nhấn nút
+                  playSound(require('../../../assets/sounds/click.mp3')); 
+                  navigation.navigate('Quiz', { gameType: item.type });
+                }}
               >
                 Chơi
               </Button>
