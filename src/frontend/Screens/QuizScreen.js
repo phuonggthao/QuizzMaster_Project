@@ -2,12 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
     View, Text, ActivityIndicator, StyleSheet,
     TouchableOpacity, TextInput, Alert, Image,
-    SafeAreaView, StatusBar
+    SafeAreaView, StatusBar, ScrollView
 } from 'react-native';
 import { useQuiz } from '../Hooks/useQuiz';
 import { Colors } from '../Styles/Colors';
 
-// Màu 4 đáp án xoay vòng như Quizizz
 const OPTION_COLORS = [Colors.optionA, Colors.optionB, Colors.optionC, Colors.optionD];
 const OPTION_SHAPES = ['▲', '◆', '●', '■'];
 
@@ -21,8 +20,7 @@ export default function QuizScreen({ route, navigation }) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [answered, setAnswered] = useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
-
-    const [timeLeft, setTimeLeft] = useState(10);
+    const [timeLeft, setTimeLeft] = useState(15);
     const timerRef = useRef(null);
 
     useEffect(() => {
@@ -32,7 +30,7 @@ export default function QuizScreen({ route, navigation }) {
 
     useEffect(() => {
         if (questions.length > 0 && !loading) {
-            setTimeLeft(10);
+            setTimeLeft(15);
             setAnswered(false);
             setSelectedAnswer(null);
             if (timerRef.current) clearInterval(timerRef.current);
@@ -63,7 +61,7 @@ export default function QuizScreen({ route, navigation }) {
     if (loading) {
         return (
             <View style={styles.center}>
-                <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
+                <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
                 <ActivityIndicator size="large" color={Colors.primary} />
                 <Text style={styles.loadingText}>Đang tải câu hỏi...</Text>
             </View>
@@ -73,7 +71,7 @@ export default function QuizScreen({ route, navigation }) {
     if (error || questions.length === 0) {
         return (
             <View style={styles.center}>
-                <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
+                <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
                 <Text style={styles.errorEmoji}>😕</Text>
                 <Text style={styles.errorText}>{error || `Chưa có câu hỏi cho [${gameType}]`}</Text>
                 <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -85,7 +83,8 @@ export default function QuizScreen({ route, navigation }) {
 
     const currentQuestion = questions[currentIndex];
     const progress = (currentIndex + 1) / questions.length;
-    const timerColor = timeLeft <= 3 ? Colors.wrong : timeLeft <= 6 ? Colors.warning : Colors.correct;
+    const timerColor = timeLeft <= 5 ? Colors.wrong : timeLeft <= 9 ? Colors.warning : Colors.correct;
+    const timerBg = timeLeft <= 5 ? '#FEE2E2' : timeLeft <= 9 ? '#FEF3C7' : '#DCFCE7';
 
     const handleAnswer = (userAnswer) => {
         if (answered) return;
@@ -154,9 +153,11 @@ export default function QuizScreen({ route, navigation }) {
             case 'TrueFalse':
                 return (
                     <View style={styles.uiContainer}>
+                        {/* Question card */}
                         <View style={styles.questionCard}>
                             <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
                         </View>
+                        {/* Options 2x2 */}
                         <View style={styles.optionsGrid}>
                             {currentQuestion.options?.map((item, index) => (
                                 <TouchableOpacity
@@ -186,16 +187,13 @@ export default function QuizScreen({ route, navigation }) {
                             activeOpacity={0.9}
                         >
                             <Text style={styles.flashcardLabel}>
-                                {isFlipped ? '✅ ĐÁP ÁN' : '❓ CÂU HỎI — Bấm để lật'}
+                                {isFlipped ? '✅ ĐÁP ÁN' : '❓ Bấm để lật thẻ'}
                             </Text>
                             <Text style={styles.flashcardContent}>
                                 {isFlipped ? currentQuestion.correctAnswer : currentQuestion.questionText}
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.submitBtn}
-                            onPress={() => handleAnswer(currentQuestion.correctAnswer)}
-                        >
+                        <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(currentQuestion.correctAnswer)}>
                             <Text style={styles.submitBtnText}>✓ Đã thuộc — Câu tiếp theo</Text>
                         </TouchableOpacity>
                     </View>
@@ -217,7 +215,7 @@ export default function QuizScreen({ route, navigation }) {
                         <TextInput
                             style={styles.textInput}
                             placeholder="Nhập đáp án..."
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Colors.textMuted}
                             value={textInput}
                             onChangeText={setTextInput}
                         />
@@ -238,7 +236,7 @@ export default function QuizScreen({ route, navigation }) {
                         <TextInput
                             style={styles.textInput}
                             placeholder="Nhập từ đúng..."
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Colors.textMuted}
                             value={textInput}
                             onChangeText={setTextInput}
                             autoCapitalize="characters"
@@ -257,7 +255,7 @@ export default function QuizScreen({ route, navigation }) {
                             <Text style={styles.defaultHint}>Trò chơi [{gameType}] đang được phát triển.</Text>
                         </View>
                         <TouchableOpacity
-                            style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
+                            style={[styles.submitBtn, { backgroundColor: Colors.optionA }]}
                             onPress={() => handleAnswer(currentQuestion.correctAnswer)}
                         >
                             <Text style={styles.submitBtnText}>Tiếp tục →</Text>
@@ -269,7 +267,7 @@ export default function QuizScreen({ route, navigation }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
 
             {/* Progress bar */}
             <View style={styles.progressBarBg}>
@@ -279,39 +277,39 @@ export default function QuizScreen({ route, navigation }) {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.questionCount}>{currentIndex + 1}/{questions.length}</Text>
+                    <Text style={styles.questionCount}>CÂU HỎI {currentIndex + 1}/{questions.length}</Text>
                     <Text style={styles.gameTypeLabel}>{gameType}</Text>
                 </View>
 
-                {/* Timer */}
-                <View style={[styles.timerCircle, { borderColor: timerColor }]}>
-                    <Text style={[styles.timerText, { color: timerColor }]}>{timeLeft}</Text>
+                {/* Timer badge */}
+                <View style={[styles.timerBadge, { backgroundColor: timerBg, borderColor: timerColor }]}>
+                    <Text style={[styles.timerText, { color: timerColor }]}>⏱ {timeLeft}s</Text>
                 </View>
 
                 {/* Score */}
-                <View style={styles.scoreBox}>
+                <View style={styles.scoreBadge}>
                     <Text style={styles.scoreLabel}>ĐIỂM</Text>
                     <Text style={styles.scoreValue}>{score}</Text>
                 </View>
             </View>
 
             {/* Content */}
-            <View style={styles.content}>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {renderGameUI()}
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.bgDark },
+    container: { flex: 1, backgroundColor: Colors.bgApp },
     center: {
-        flex: 1, backgroundColor: Colors.bgDark,
+        flex: 1, backgroundColor: Colors.bgApp,
         justifyContent: 'center', alignItems: 'center', padding: 24,
     },
     loadingText: { color: Colors.textMuted, marginTop: 12, fontSize: 16 },
     errorEmoji: { fontSize: 52, marginBottom: 12 },
-    errorText: { color: Colors.textLight, fontSize: 16, textAlign: 'center', marginBottom: 20 },
+    errorText: { color: Colors.textPrimary, fontSize: 16, textAlign: 'center', marginBottom: 20 },
     backBtn: {
         backgroundColor: Colors.primary, paddingHorizontal: 24,
         paddingVertical: 12, borderRadius: 12,
@@ -319,45 +317,53 @@ const styles = StyleSheet.create({
     backBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
     // Progress
-    progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)' },
-    progressBarFill: { height: 6, backgroundColor: Colors.primary, borderRadius: 3 },
+    progressBarBg: { height: 5, backgroundColor: Colors.border },
+    progressBarFill: { height: 5, backgroundColor: Colors.primary, borderRadius: 3 },
 
     // Header
     header: {
         flexDirection: 'row', alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingVertical: 14,
+        paddingHorizontal: 16, paddingVertical: 12,
+        backgroundColor: Colors.bgCard,
+        borderBottomWidth: 1, borderBottomColor: Colors.border,
     },
     headerLeft: {},
-    questionCount: { fontSize: 18, fontWeight: '900', color: Colors.textLight },
-    gameTypeLabel: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-    timerCircle: {
-        width: 54, height: 54, borderRadius: 27,
-        borderWidth: 3, justifyContent: 'center', alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.08)',
+    questionCount: { fontSize: 13, fontWeight: '800', color: Colors.primary, letterSpacing: 0.5 },
+    gameTypeLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+
+    timerBadge: {
+        paddingHorizontal: 14, paddingVertical: 7,
+        borderRadius: 20, borderWidth: 1.5,
     },
-    timerText: { fontSize: 20, fontWeight: '900' },
-    scoreBox: { alignItems: 'flex-end' },
-    scoreLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: '700', letterSpacing: 1 },
-    scoreValue: { fontSize: 22, fontWeight: '900', color: Colors.accent },
+    timerText: { fontSize: 14, fontWeight: '800' },
+
+    scoreBadge: { alignItems: 'flex-end' },
+    scoreLabel: { fontSize: 10, color: Colors.textMuted, fontWeight: '700', letterSpacing: 1 },
+    scoreValue: { fontSize: 20, fontWeight: '900', color: Colors.primary },
 
     // Content
-    content: { flex: 1, paddingHorizontal: 16, paddingBottom: 16 },
-    uiContainer: { flex: 1 },
+    content: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+    uiContainer: { paddingBottom: 24 },
 
-    // Question card
+    // Question card — nền trắng
     questionCard: {
         backgroundColor: Colors.bgCard,
         borderRadius: 20, padding: 22,
-        marginBottom: 16, borderWidth: 1, borderColor: Colors.border,
+        marginBottom: 16,
+        borderWidth: 1, borderColor: Colors.border,
         minHeight: 100, justifyContent: 'center',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06, shadowRadius: 8,
     },
     questionText: {
         fontSize: 18, fontWeight: '800',
-        color: Colors.textLight, textAlign: 'center', lineHeight: 26,
+        color: Colors.textPrimary, textAlign: 'center', lineHeight: 26,
     },
 
-    // Options grid — 2 cột như Quizizz
+    // Options 2x2
     optionsGrid: {
         flexDirection: 'row', flexWrap: 'wrap',
         justifyContent: 'space-between', gap: 10,
@@ -366,14 +372,14 @@ const styles = StyleSheet.create({
         width: '48%', borderRadius: 16,
         paddingVertical: 18, paddingHorizontal: 12,
         alignItems: 'center', justifyContent: 'center',
-        minHeight: 80, elevation: 4,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3, shadowRadius: 5,
+        minHeight: 80, elevation: 3,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15, shadowRadius: 6,
     },
     optionCorrect: { borderWidth: 3, borderColor: Colors.correct },
     optionWrong:   { borderWidth: 3, borderColor: Colors.wrong, opacity: 0.7 },
-    optionDimmed:  { opacity: 0.45 },
-    optionShape: { fontSize: 18, marginBottom: 6, color: 'rgba(255,255,255,0.8)' },
+    optionDimmed:  { opacity: 0.4 },
+    optionShape: { fontSize: 18, marginBottom: 6, color: 'rgba(255,255,255,0.85)' },
     optionText: {
         color: '#fff', fontSize: 15, fontWeight: '800',
         textAlign: 'center', lineHeight: 20,
@@ -383,13 +389,11 @@ const styles = StyleSheet.create({
     flashcard: {
         backgroundColor: Colors.primary, borderRadius: 20,
         padding: 28, alignItems: 'center', justifyContent: 'center',
-        minHeight: 160, marginBottom: 16,
-        borderWidth: 1, borderColor: Colors.border,
-        elevation: 6,
+        minHeight: 150, marginBottom: 16, elevation: 4,
     },
     flashcardFlipped: { backgroundColor: Colors.correct },
     flashcardLabel: {
-        fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.7)',
+        fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.75)',
         marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1,
     },
     flashcardContent: {
@@ -398,10 +402,10 @@ const styles = StyleSheet.create({
 
     // Text input
     textInput: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: Colors.bgCard,
         borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16,
-        fontSize: 17, color: Colors.textLight,
-        borderWidth: 1, borderColor: Colors.border,
+        fontSize: 16, color: Colors.textPrimary,
+        borderWidth: 1.5, borderColor: Colors.border,
         marginBottom: 14,
     },
 
@@ -409,9 +413,9 @@ const styles = StyleSheet.create({
     submitBtn: {
         backgroundColor: Colors.primary, borderRadius: 14,
         paddingVertical: 16, alignItems: 'center',
-        elevation: 5, shadowColor: Colors.primary,
+        elevation: 4, shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4, shadowRadius: 8,
+        shadowOpacity: 0.35, shadowRadius: 8,
     },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
@@ -419,21 +423,21 @@ const styles = StyleSheet.create({
     quizImage: {
         width: '100%', height: 180, borderRadius: 16,
         marginBottom: 14, resizeMode: 'contain',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: Colors.bgApp,
     },
     imagePlaceholder: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: Colors.primaryLight,
         borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 14,
     },
-    imagePlaceholderText: { color: Colors.textMuted, fontSize: 15 },
+    imagePlaceholderText: { color: Colors.primary, fontSize: 15, fontWeight: '600' },
 
     // Word scramble
     scrambleLabel: {
-        fontSize: 13, color: Colors.textMuted, textAlign: 'center',
+        fontSize: 12, color: Colors.textMuted, textAlign: 'center',
         marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1,
     },
     scrambleWord: {
-        fontSize: 32, fontWeight: '900', color: Colors.accent,
+        fontSize: 30, fontWeight: '900', color: Colors.primary,
         textAlign: 'center', letterSpacing: 6, marginBottom: 8,
     },
     scrambleHint: { fontSize: 13, color: Colors.textMuted, textAlign: 'center' },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    Alert, StyleSheet, KeyboardAvoidingView, Platform, StatusBar
+    Alert, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
@@ -49,64 +49,67 @@ export default function LoginScreen({ navigation }) {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-            <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-            {/* Logo */}
-            <View style={styles.logoArea}>
-                <View style={styles.logoCircle}>
-                    <Text style={styles.logoEmoji}>🎮</Text>
-                </View>
-                <Text style={styles.appName}>QuizzMaster</Text>
-                <Text style={styles.tagline}>Học vui — Chơi thật</Text>
-            </View>
-
-            {/* Form */}
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Đăng nhập</Text>
-
-                <View style={styles.inputWrapper}>
-                    <Text style={styles.inputLabel}>Tên đăng nhập</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nhập username..."
-                        placeholderTextColor="rgba(255,255,255,0.4)"
-                        value={username}
-                        onChangeText={setUsername}
-                        autoCapitalize="none"
-                    />
+                {/* Header tím */}
+                <View style={styles.header}>
+                    <View style={styles.logoCircle}>
+                        <Text style={styles.logoEmoji}>🎮</Text>
+                    </View>
+                    <Text style={styles.appName}>QuizzMaster</Text>
+                    <Text style={styles.tagline}>Học vui — Chơi thật</Text>
                 </View>
 
-                <View style={styles.inputWrapper}>
-                    <Text style={styles.inputLabel}>Mật khẩu</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nhập mật khẩu..."
-                        placeholderTextColor="rgba(255,255,255,0.4)"
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                    />
+                {/* Form card */}
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Đăng nhập</Text>
+
+                    <View style={styles.inputWrapper}>
+                        <Text style={styles.inputLabel}>Tên đăng nhập</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Nhập username..."
+                            placeholderTextColor={Colors.textMuted}
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    <View style={styles.inputWrapper}>
+                        <Text style={styles.inputLabel}>Mật khẩu</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Nhập mật khẩu..."
+                            placeholderTextColor={Colors.textMuted}
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                        onPress={handleLogin}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                    >
+                        <Text style={styles.btnPrimaryText}>
+                            {loading ? "Đang xử lý..." : "Đăng Nhập →"}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.linkRow}
+                        onPress={() => navigation.navigate('Register')}
+                    >
+                        <Text style={styles.linkText}>Chưa có tài khoản? </Text>
+                        <Text style={styles.linkHighlight}>Đăng ký ngay</Text>
+                    </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                    style={[styles.btnPrimary, loading && styles.btnDisabled]}
-                    onPress={handleLogin}
-                    disabled={loading}
-                    activeOpacity={0.85}
-                >
-                    <Text style={styles.btnPrimaryText}>
-                        {loading ? "Đang xử lý..." : "Đăng Nhập  →"}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.linkRow}
-                    onPress={() => navigation.navigate('Register')}
-                >
-                    <Text style={styles.linkText}>Chưa có tài khoản? </Text>
-                    <Text style={styles.linkHighlight}>Đăng ký ngay</Text>
-                </TouchableOpacity>
-            </View>
+            </ScrollView>
         </KeyboardAvoidingView>
     );
 }
@@ -114,65 +117,77 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.bgDark,
-        justifyContent: 'center',
-        paddingHorizontal: 24,
+        backgroundColor: Colors.bgApp,
     },
-    logoArea: {
+    scroll: {
+        flexGrow: 1,
+    },
+
+    // Header tím bo góc dưới
+    header: {
+        backgroundColor: Colors.primary,
+        paddingTop: 60,
+        paddingBottom: 48,
         alignItems: 'center',
-        marginBottom: 36,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
     },
     logoCircle: {
         width: 80, height: 80, borderRadius: 40,
-        backgroundColor: Colors.primary,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center', alignItems: 'center',
-        marginBottom: 12,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.6, shadowRadius: 16, elevation: 10,
+        marginBottom: 14,
+        borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
     },
     logoEmoji: { fontSize: 38 },
     appName: {
-        fontSize: 34, fontWeight: '900',
+        fontSize: 32, fontWeight: '900',
         color: Colors.textLight, letterSpacing: 1,
     },
-    tagline: { fontSize: 14, color: Colors.textMuted, marginTop: 4 },
+    tagline: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
+
+    // Card form
     card: {
         backgroundColor: Colors.bgCard,
         borderRadius: 24, padding: 28,
-        borderWidth: 1, borderColor: Colors.border,
+        margin: 20, marginTop: -24,
+        elevation: 8,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15, shadowRadius: 12,
     },
     cardTitle: {
         fontSize: 22, fontWeight: '800',
-        color: Colors.textLight, marginBottom: 22, textAlign: 'center',
+        color: Colors.textPrimary, marginBottom: 24, textAlign: 'center',
     },
     inputWrapper: { marginBottom: 16 },
     inputLabel: {
         fontSize: 13, fontWeight: '700', color: Colors.textMuted,
-        marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
+        marginBottom: 8, letterSpacing: 0.3,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: Colors.bgApp,
         borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-        fontSize: 16, color: Colors.textLight,
-        borderWidth: 1, borderColor: Colors.border,
+        fontSize: 15, color: Colors.textPrimary,
+        borderWidth: 1.5, borderColor: Colors.border,
     },
     btnPrimary: {
         backgroundColor: Colors.primary,
         borderRadius: 14, paddingVertical: 16,
         alignItems: 'center', marginTop: 8,
+        elevation: 4,
         shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4, shadowRadius: 8,
     },
     btnDisabled: { opacity: 0.6 },
     btnPrimaryText: {
-        color: Colors.textLight, fontSize: 17, fontWeight: '800', letterSpacing: 0.5,
+        color: Colors.textLight, fontSize: 16, fontWeight: '800', letterSpacing: 0.5,
     },
     linkRow: {
         flexDirection: 'row', justifyContent: 'center',
         marginTop: 20, alignItems: 'center',
     },
     linkText: { color: Colors.textMuted, fontSize: 14 },
-    linkHighlight: { color: Colors.accent, fontSize: 14, fontWeight: '700' },
+    linkHighlight: { color: Colors.primary, fontSize: 14, fontWeight: '700' },
 });

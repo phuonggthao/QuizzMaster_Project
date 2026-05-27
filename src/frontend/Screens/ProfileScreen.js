@@ -8,10 +8,10 @@ import BASE_URL from '../config';
 import { Colors } from '../Styles/Colors';
 
 const TIER_CONFIG = {
-    'Đồng':  { color: '#cd7f32', emoji: '🥉' },
-    'Bạc':   { color: '#c0c0c0', emoji: '🥈' },
-    'Vàng':  { color: '#ffd700', emoji: '🥇' },
-    'Bạch Kim': { color: '#e5e4e2', emoji: '💎' },
+    'Đồng':     { color: '#cd7f32', emoji: '🥉', bg: '#FDF3E7' },
+    'Bạc':      { color: '#9CA3AF', emoji: '🥈', bg: '#F3F4F6' },
+    'Vàng':     { color: '#F59E0B', emoji: '🥇', bg: '#FFFBEB' },
+    'Bạch Kim': { color: '#8B5CF6', emoji: '💎', bg: '#EDE9FF' },
 };
 
 export default function ProfileScreen({ navigation }) {
@@ -54,7 +54,7 @@ export default function ProfileScreen({ navigation }) {
     if (loading) {
         return (
             <View style={styles.center}>
-                <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
+                <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
                 <ActivityIndicator size="large" color={Colors.primary} />
             </View>
         );
@@ -66,13 +66,13 @@ export default function ProfileScreen({ navigation }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
-            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+            <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Avatar + tên */}
+                {/* Header tím */}
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarRing}>
-                        <View style={[styles.avatar, { borderColor: tierInfo.color }]}>
+                        <View style={styles.avatar}>
                             <Text style={styles.avatarText}>{avatarLetter}</Text>
                         </View>
                     </View>
@@ -80,51 +80,53 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.username}>@{user?.username}</Text>
 
                     {/* Rank badge */}
-                    <View style={[styles.rankBadge, { backgroundColor: tierInfo.color + '33', borderColor: tierInfo.color }]}>
+                    <View style={[styles.rankBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                         <Text style={styles.rankEmoji}>{tierInfo.emoji}</Text>
-                        <Text style={[styles.rankText, { color: tierInfo.color }]}>{tier}</Text>
+                        <Text style={styles.rankText}>{tier}</Text>
                     </View>
                 </View>
 
-                {/* Stats */}
-                <View style={styles.statsRow}>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statEmoji}>🏆</Text>
-                        <Text style={styles.statValue}>{user?.highScore || 0}</Text>
-                        <Text style={styles.statLabel}>Kỷ lục</Text>
+                <View style={styles.body}>
+                    {/* Stats row */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statCard}>
+                            <Text style={styles.statEmoji}>🏆</Text>
+                            <Text style={styles.statValue}>{user?.highScore || 0}</Text>
+                            <Text style={styles.statLabel}>Kỷ lục</Text>
+                        </View>
+                        <View style={[styles.statCard, styles.statCardMiddle]}>
+                            <Text style={styles.statEmoji}>⚡</Text>
+                            <Text style={[styles.statValue, { color: Colors.primary }]}>Lv.{user?.level || 1}</Text>
+                            <Text style={styles.statLabel}>Cấp độ</Text>
+                        </View>
+                        <View style={styles.statCard}>
+                            <Text style={styles.statEmoji}>🎯</Text>
+                            <Text style={styles.statValue}>{tier}</Text>
+                            <Text style={styles.statLabel}>Hạng</Text>
+                        </View>
                     </View>
-                    <View style={[styles.statCard, styles.statCardMiddle]}>
-                        <Text style={styles.statEmoji}>⚡</Text>
-                        <Text style={styles.statValue}>Lv.{user?.level || 1}</Text>
-                        <Text style={styles.statLabel}>Cấp độ</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statEmoji}>🎯</Text>
-                        <Text style={styles.statValue}>{tier}</Text>
-                        <Text style={styles.statLabel}>Hạng</Text>
-                    </View>
-                </View>
 
-                {/* Level progress */}
-                <View style={styles.levelCard}>
-                    <View style={styles.levelHeader}>
-                        <Text style={styles.levelTitle}>Tiến độ thăng cấp</Text>
-                        <Text style={styles.levelValue}>Lv.{user?.level || 1} → Lv.{(user?.level || 1) + 1}</Text>
+                    {/* Level progress */}
+                    <View style={styles.levelCard}>
+                        <View style={styles.levelHeader}>
+                            <Text style={styles.levelTitle}>Tiến độ thăng cấp</Text>
+                            <Text style={styles.levelValue}>Lv.{user?.level || 1} → Lv.{(user?.level || 1) + 1}</Text>
+                        </View>
+                        <View style={styles.levelBarBg}>
+                            <View style={[styles.levelBarFill, {
+                                width: `${Math.min(((user?.highScore || 0) % 20) / 20 * 100, 100)}%`
+                            }]} />
+                        </View>
+                        <Text style={styles.levelHint}>
+                            {(user?.highScore || 0) % 20}/20 điểm để lên cấp tiếp theo
+                        </Text>
                     </View>
-                    <View style={styles.levelBarBg}>
-                        <View style={[styles.levelBarFill, {
-                            width: `${Math.min(((user?.highScore || 0) % 20) / 20 * 100, 100)}%`
-                        }]} />
-                    </View>
-                    <Text style={styles.levelHint}>
-                        {(user?.highScore || 0) % 20}/{20} điểm để lên cấp tiếp theo
-                    </Text>
-                </View>
 
-                {/* Logout */}
-                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-                    <Text style={styles.logoutText}>Đăng Xuất</Text>
-                </TouchableOpacity>
+                    {/* Logout */}
+                    <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+                        <Text style={styles.logoutText}>Đăng Xuất</Text>
+                    </TouchableOpacity>
+                </View>
 
             </ScrollView>
         </SafeAreaView>
@@ -132,65 +134,82 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.bgDark },
-    center: { flex: 1, backgroundColor: Colors.bgDark, justifyContent: 'center', alignItems: 'center' },
-    scroll: { paddingHorizontal: 20, paddingBottom: 40 },
+    container: { flex: 1, backgroundColor: Colors.bgApp },
+    center: { flex: 1, backgroundColor: Colors.bgApp, justifyContent: 'center', alignItems: 'center' },
 
-    profileHeader: { alignItems: 'center', paddingTop: 30, marginBottom: 28 },
+    // Header tím
+    profileHeader: {
+        backgroundColor: Colors.primary,
+        paddingTop: 36, paddingBottom: 40,
+        alignItems: 'center',
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
+    },
     avatarRing: {
         padding: 4, borderRadius: 60,
-        backgroundColor: 'rgba(139,92,246,0.2)', marginBottom: 14,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        marginBottom: 14,
     },
     avatar: {
-        width: 96, height: 96, borderRadius: 48,
-        backgroundColor: Colors.primary,
+        width: 90, height: 90, borderRadius: 45,
+        backgroundColor: 'rgba(255,255,255,0.3)',
         justifyContent: 'center', alignItems: 'center',
-        borderWidth: 3,
+        borderWidth: 3, borderColor: 'rgba(255,255,255,0.6)',
     },
-    avatarText: { fontSize: 40, fontWeight: '900', color: '#fff' },
-    fullName: { fontSize: 24, fontWeight: '900', color: Colors.textLight, marginBottom: 4 },
-    username: { fontSize: 15, color: Colors.textMuted, marginBottom: 14 },
+    avatarText: { fontSize: 38, fontWeight: '900', color: '#fff' },
+    fullName: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
+    username: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 14 },
     rankBadge: {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 16, paddingVertical: 7,
-        borderRadius: 20, borderWidth: 1.5, gap: 6,
+        borderRadius: 20, gap: 6,
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
     },
-    rankEmoji: { fontSize: 18 },
-    rankText: { fontSize: 15, fontWeight: '800' },
+    rankEmoji: { fontSize: 16 },
+    rankText: { fontSize: 14, fontWeight: '800', color: '#fff' },
+
+    // Body
+    body: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
 
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
     statCard: {
         flex: 1, backgroundColor: Colors.bgCard,
-        borderRadius: 18, padding: 18, alignItems: 'center',
+        borderRadius: 18, padding: 16, alignItems: 'center',
         borderWidth: 1, borderColor: Colors.border,
+        elevation: 2,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06, shadowRadius: 6,
     },
-    statCardMiddle: { borderColor: Colors.primary },
-    statEmoji: { fontSize: 24, marginBottom: 6 },
-    statValue: { fontSize: 20, fontWeight: '900', color: Colors.textLight, marginBottom: 2 },
-    statLabel: { fontSize: 12, color: Colors.textMuted, fontWeight: '600' },
+    statCardMiddle: { borderColor: Colors.primaryLight, borderWidth: 2 },
+    statEmoji: { fontSize: 22, marginBottom: 6 },
+    statValue: { fontSize: 18, fontWeight: '900', color: Colors.textPrimary, marginBottom: 2 },
+    statLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: '600' },
 
     levelCard: {
         backgroundColor: Colors.bgCard, borderRadius: 18,
-        padding: 20, marginBottom: 24,
+        padding: 20, marginBottom: 20,
         borderWidth: 1, borderColor: Colors.border,
+        elevation: 2,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06, shadowRadius: 6,
     },
     levelHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    levelTitle: { fontSize: 15, fontWeight: '700', color: Colors.textLight },
+    levelTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
     levelValue: { fontSize: 13, color: Colors.primary, fontWeight: '700' },
     levelBarBg: {
-        height: 10, backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 5, marginBottom: 8,
+        height: 8, backgroundColor: Colors.bgApp,
+        borderRadius: 4, marginBottom: 8,
     },
     levelBarFill: {
-        height: 10, backgroundColor: Colors.primary,
-        borderRadius: 5,
+        height: 8, backgroundColor: Colors.primary,
+        borderRadius: 4,
     },
     levelHint: { fontSize: 12, color: Colors.textMuted },
 
     logoutBtn: {
-        backgroundColor: 'rgba(239,68,68,0.15)',
+        backgroundColor: '#FEE2E2',
         borderRadius: 14, paddingVertical: 16,
         alignItems: 'center', borderWidth: 1.5, borderColor: Colors.wrong,
     },
-    logoutText: { color: Colors.wrong, fontSize: 16, fontWeight: '800' },
+    logoutText: { color: Colors.wrong, fontSize: 15, fontWeight: '800' },
 });

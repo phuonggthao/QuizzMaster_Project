@@ -21,10 +21,10 @@ function UserTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#8b5cf6',
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
-        tabBarStyle: { paddingBottom: 5, height: 60, backgroundColor: '#3d1a78', borderTopColor: 'rgba(255,255,255,0.1)' },
-        headerStyle: { backgroundColor: '#3d1a78' },
+        tabBarActiveTintColor: '#6C63FF',
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: { paddingBottom: 5, height: 60, backgroundColor: '#FFFFFF', borderTopColor: '#E5E7EB', borderTopWidth: 1 },
+        headerStyle: { backgroundColor: '#6C63FF' },
         headerTintColor: '#fff',
         headerTitleAlign: 'center',
         headerTitleStyle: { fontWeight: 'bold' },
@@ -60,7 +60,7 @@ export default function App() {
       <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{
-          headerStyle: { backgroundColor: '#3d1a78' },
+          headerStyle: { backgroundColor: '#6C63FF' },
           headerTintColor: '#fff',
           headerTitleAlign: 'center',
           headerTitleStyle: { fontWeight: 'bold' },

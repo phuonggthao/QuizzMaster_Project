@@ -1,33 +1,40 @@
-// Bảng màu phong cách Quizizz
+// Bảng màu QuizMates — theo đúng mockup thiết kế
 export const Colors = {
   // Nền chính
-  bgDark:      '#26045e',   // Tím đậm — nền toàn app
-  bgCard:      '#3d1a78',   // Tím vừa — card/panel
-  bgLight:     '#f5f0ff',   // Tím nhạt — nền màn hình sáng
+  bgApp:       '#F0EEFF',   // Tím nhạt — nền toàn app
+  bgDark:      '#6C63FF',   // Tím chủ đạo — header/accent
+  bgCard:      '#FFFFFF',   // Trắng — card/panel
+  bgLight:     '#F0EEFF',   // Tím nhạt
 
   // Màu chủ đạo
-  primary:     '#8b5cf6',   // Tím sáng
-  primaryDark: '#6d28d9',   // Tím đậm hơn
-  accent:      '#f59e0b',   // Vàng cam — điểm nhấn
+  primary:     '#6C63FF',   // Tím QuizMates
+  primaryDark: '#5A52D5',   // Tím đậm hơn (pressed)
+  primaryLight:'#EDE9FF',   // Tím rất nhạt (background tint)
+  accent:      '#FFD700',   // Vàng — điểm nhấn, badge
 
   // Màu đáp án (4 màu như Quizizz)
-  optionA:     '#e74c3c',   // Đỏ
-  optionB:     '#3498db',   // Xanh dương
-  optionC:     '#f39c12',   // Vàng cam
-  optionD:     '#2ecc71',   // Xanh lá
+  optionA:     '#FF6B6B',   // Đỏ/cam
+  optionB:     '#6C63FF',   // Tím
+  optionC:     '#FFD700',   // Vàng
+  optionD:     '#4ECDC4',   // Xanh ngọc
 
   // Trạng thái
-  correct:     '#22c55e',   // Xanh lá — đúng
-  wrong:       '#ef4444',   // Đỏ — sai
-  warning:     '#f59e0b',   // Vàng — cảnh báo
+  correct:     '#22C55E',   // Xanh lá — đúng
+  wrong:       '#EF4444',   // Đỏ — sai
+  warning:     '#F59E0B',   // Vàng — cảnh báo
 
   // Text
-  textLight:   '#ffffff',
-  textMuted:   'rgba(255,255,255,0.65)',
-  textDark:    '#1e1b4b',
+  textPrimary: '#1A1A2E',   // Đen đậm — text chính
+  textLight:   '#FFFFFF',   // Trắng — text trên nền tối
+  textMuted:   '#6B7280',   // Xám — text phụ
+  textDark:    '#1A1A2E',
+
+  // Border & Divider
+  border:      '#E5E7EB',   // Xám nhạt
+  borderLight: 'rgba(108,99,255,0.2)',
 
   // Khác
-  white:       '#ffffff',
-  border:      'rgba(255,255,255,0.15)',
+  white:       '#FFFFFF',
   overlay:     'rgba(0,0,0,0.35)',
+  shadow:      '#6C63FF',
 };

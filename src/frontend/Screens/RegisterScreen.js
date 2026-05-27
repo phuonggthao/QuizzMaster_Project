@@ -41,13 +41,14 @@ export default function RegisterScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1, backgroundColor: Colors.bgDark }}
+            style={{ flex: 1, backgroundColor: Colors.bgApp }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-            <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
-            <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-                <View style={styles.logoArea}>
+                {/* Header tím */}
+                <View style={styles.header}>
                     <View style={styles.logoCircle}>
                         <Text style={styles.logoEmoji}>✨</Text>
                     </View>
@@ -55,13 +56,14 @@ export default function RegisterScreen({ navigation }) {
                     <Text style={styles.tagline}>Tham gia QuizzMaster ngay hôm nay</Text>
                 </View>
 
+                {/* Form card */}
                 <View style={styles.card}>
                     <View style={styles.inputWrapper}>
                         <Text style={styles.inputLabel}>Họ và tên</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Nhập họ tên..."
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Colors.textMuted}
                             value={fullName}
                             onChangeText={setFullName}
                         />
@@ -72,7 +74,7 @@ export default function RegisterScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Nhập username..."
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Colors.textMuted}
                             value={username}
                             onChangeText={setUsername}
                             autoCapitalize="none"
@@ -84,7 +86,7 @@ export default function RegisterScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Nhập mật khẩu..."
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Colors.textMuted}
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
@@ -98,7 +100,7 @@ export default function RegisterScreen({ navigation }) {
                         activeOpacity={0.85}
                     >
                         <Text style={styles.btnPrimaryText}>
-                            {loading ? "Đang xử lý..." : "Đăng Ký Ngay  →"}
+                            {loading ? "Đang xử lý..." : "Đăng Ký Ngay →"}
                         </Text>
                     </TouchableOpacity>
 
@@ -110,51 +112,65 @@ export default function RegisterScreen({ navigation }) {
                         <Text style={styles.linkHighlight}>Đăng nhập</Text>
                     </TouchableOpacity>
                 </View>
+
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flexGrow: 1, backgroundColor: Colors.bgDark,
-        justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40,
+    scroll: { flexGrow: 1 },
+
+    header: {
+        backgroundColor: Colors.primary,
+        paddingTop: 60,
+        paddingBottom: 48,
+        alignItems: 'center',
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
     },
-    logoArea: { alignItems: 'center', marginBottom: 32 },
     logoCircle: {
-        width: 72, height: 72, borderRadius: 36,
-        backgroundColor: Colors.accent,
-        justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-        shadowColor: Colors.accent, shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5, shadowRadius: 14, elevation: 10,
+        width: 76, height: 76, borderRadius: 38,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 14,
+        borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
     },
     logoEmoji: { fontSize: 34 },
-    appName: { fontSize: 28, fontWeight: '900', color: Colors.textLight },
-    tagline: { fontSize: 14, color: Colors.textMuted, marginTop: 4 },
+    appName: { fontSize: 28, fontWeight: '900', color: Colors.textLight, letterSpacing: 0.5 },
+    tagline: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
+
     card: {
-        backgroundColor: Colors.bgCard, borderRadius: 24,
-        padding: 28, borderWidth: 1, borderColor: Colors.border,
+        backgroundColor: Colors.bgCard,
+        borderRadius: 24, padding: 28,
+        margin: 20, marginTop: -24,
+        elevation: 8,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15, shadowRadius: 12,
     },
     inputWrapper: { marginBottom: 16 },
     inputLabel: {
         fontSize: 13, fontWeight: '700', color: Colors.textMuted,
-        marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
+        marginBottom: 8, letterSpacing: 0.3,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: Colors.bgApp,
         borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-        fontSize: 16, color: Colors.textLight,
-        borderWidth: 1, borderColor: Colors.border,
+        fontSize: 15, color: Colors.textPrimary,
+        borderWidth: 1.5, borderColor: Colors.border,
     },
     btnPrimary: {
         backgroundColor: Colors.primary, borderRadius: 14,
         paddingVertical: 16, alignItems: 'center', marginTop: 8,
-        shadowColor: Colors.primary, shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+        elevation: 4,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4, shadowRadius: 8,
     },
     btnDisabled: { opacity: 0.6 },
-    btnPrimaryText: { color: Colors.textLight, fontSize: 17, fontWeight: '800' },
+    btnPrimaryText: { color: Colors.textLight, fontSize: 16, fontWeight: '800' },
     linkRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     linkText: { color: Colors.textMuted, fontSize: 14 },
-    linkHighlight: { color: Colors.accent, fontSize: 14, fontWeight: '700' },
+    linkHighlight: { color: Colors.primary, fontSize: 14, fontWeight: '700' },
 });
