@@ -3,7 +3,7 @@ npm install mongoose dotenv bcryptjs express
 npm install mongodb
 npm install mongodb@3.6
 npm install jsonwebtoken
-npm install bcrypt
+npm install bcryptjs
 Mở Terminal tại thư mục dự án và chạy lệnh để nạp dữ liệu
 node --dns-result-order=ipv4first 
 src/backend/seed.js

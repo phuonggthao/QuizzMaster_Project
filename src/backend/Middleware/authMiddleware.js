@@ -1,6 +1,7 @@
 // src/backend/Middleware/authMiddleware.js
 import jwt from 'jsonwebtoken';
 
+
 // 1. Chốt kiểm tra xem đã Đăng Nhập chưa (Có Token hợp lệ không)
 export const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
