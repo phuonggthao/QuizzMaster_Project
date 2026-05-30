@@ -20,4 +20,4 @@ ipconfig -> đổi lại ip trong config.js
   khi nạp dữ liệu câu hỏi thì cd src -> cd backend -> node seed.js
 
 
-  tk: admin 12345
+  

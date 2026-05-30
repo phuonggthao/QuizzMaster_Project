@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    ActivityIndicator, Alert, SafeAreaView, StatusBar, ScrollView
+    ActivityIndicator, Alert, StatusBar, ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
 import { Colors } from '../Styles/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const TIER_CONFIG = {
     'Đồng':  { color: '#cd7f32', emoji: '🥉' },

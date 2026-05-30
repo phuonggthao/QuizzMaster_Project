@@ -1,26 +1,31 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-dotenv.config();
 
-export const connectDatabase = async () => {
-    try {
-        const uri = process.env.MONGO_URI;
-        
-        // Tùy chọn "trần trụi" nhất - không ép bất cứ thứ gì
-        const options = {
-            serverSelectionTimeoutMS: 10000, 
-           
-        };
+// Lưu trữ biến db ở đây để dùng bất cứ đâu
+let dbInstance = null;
 
-        console.log("📍 Đang kết nối tới MongoDB...");
-        // Bỏ await để tránh nó treo ở bước connect
-        mongoose.connect(uri, options);
-
-        // Lắng nghe sự kiện kết nối để biết nó thực sự "sống" hay không
-        mongoose.connection.on('connected', () => console.log("✅ MongoDB đã kết nối!"));
-        mongoose.connection.on('error', (err) => console.error("❌ MongoDB lỗi kết nối:", err));
-
-    } catch (error) {
-        console.error("❌ Lỗi cấu hình:", error.message);
+const connectDatabase = async () => {
+    if (mongoose.connection.readyState === 1) {
+        dbInstance = mongoose.connection.db;
+        return;
     }
+
+    console.log("🚀 Đang kết nối Database...");
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: 'QuizzMaster',
+        serverSelectionTimeoutMS: 5000,
+        family: 4
+    });
+
+    dbInstance = mongoose.connection.db; // Lưu lại kết nối ngay khi thành công
+    console.log("✅ Kết nối Database thành công!");
+     console.log("✅ Đã kết nối tới Database tên là:", mongoose.connection.name);
 };
+
+// Hàm lấy db an toàn
+const getDb = () => {
+    if (!dbInstance) throw new Error("Database chưa sẵn sàng!");
+    return dbInstance;
+   
+};
+
+export { mongoose, connectDatabase, getDb };

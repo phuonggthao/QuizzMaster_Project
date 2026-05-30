@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
     View, Text, ActivityIndicator, StyleSheet,
-    TouchableOpacity, TextInput, Alert, Image,
-    SafeAreaView, StatusBar
+    TouchableOpacity, TextInput, Alert, StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuiz } from '../Hooks/useQuiz';
 import { Colors } from '../Styles/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Màu 4 đáp án xoay vòng như Quizizz
 const OPTION_COLORS = [Colors.optionA, Colors.optionB, Colors.optionC, Colors.optionD];
 const OPTION_SHAPES = ['▲', '◆', '●', '■'];
 
@@ -21,12 +21,17 @@ export default function QuizScreen({ route, navigation }) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [answered, setAnswered] = useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
-
     const [timeLeft, setTimeLeft] = useState(10);
     const timerRef = useRef(null);
 
     useEffect(() => {
-        fetchQuestions();
+        // Kiểm tra xem đã có token chưa
+        const checkAuth = async () => {
+            const token = await AsyncStorage.getItem('token');
+            console.log("DEBUG: Token hiện tại là:", token);
+            fetchQuestions();
+        };
+        checkAuth();
         return () => clearInterval(timerRef.current);
     }, []);
 
@@ -53,32 +58,19 @@ export default function QuizScreen({ route, navigation }) {
     const handleTimeOut = () => {
         if (answered) return;
         setAnswered(true);
-        setTimeout(() => {
-            Alert.alert("⏳ Hết Giờ!", `Đáp án đúng: ${questions[currentIndex]?.correctAnswer}`, [
-                { text: "Tiếp tục", onPress: () => nextQuestion(score) }
-            ]);
-        }, 300);
+        Alert.alert("⏳ Hết Giờ!", `Đáp án đúng: ${questions[currentIndex]?.correctAnswer}`, [
+            { text: "Tiếp tục", onPress: () => nextQuestion(score) }
+        ]);
     };
 
-    if (loading) {
-        return (
-            <View style={styles.center}>
-                <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
-                <ActivityIndicator size="large" color={Colors.primary} />
-                <Text style={styles.loadingText}>Đang tải câu hỏi...</Text>
-            </View>
-        );
-    }
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /><Text style={styles.loadingText}>Đang tải...</Text></View>;
 
     if (error || questions.length === 0) {
         return (
             <View style={styles.center}>
-                <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
                 <Text style={styles.errorEmoji}>😕</Text>
-                <Text style={styles.errorText}>{error || `Chưa có câu hỏi cho [${gameType}]`}</Text>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.backBtnText}>← Quay lại</Text>
-                </TouchableOpacity>
+                <Text style={styles.errorText}>Lỗi: {error || "Không có dữ liệu! Kiểm tra Login/Token."}</Text>
+                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}><Text style={styles.backBtnText}>← Quay lại</Text></TouchableOpacity>
             </View>
         );
     }
@@ -92,51 +84,24 @@ export default function QuizScreen({ route, navigation }) {
         if (timerRef.current) clearInterval(timerRef.current);
         setAnswered(true);
         setSelectedAnswer(userAnswer);
-
-        let isCorrect = false;
-        switch (gameType) {
-            case 'Quiz':
-            case 'TrueFalse':
-                isCorrect = String(userAnswer).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
-                break;
-            case 'FillInBlank':
-            case 'PictureQuiz':
-            case 'WordScramble':
-                isCorrect = String(textInput).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
-                break;
-            default:
-                isCorrect = true;
-                break;
-        }
-
+        const isCorrect = String(userAnswer || textInput).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
         const newScore = isCorrect ? score + 10 : score;
         if (isCorrect) setScore(newScore);
-
         setTimeout(() => {
-            if (isCorrect) {
-                Alert.alert("🎉 Chính Xác!", "+10 điểm", [
-                    { text: "Tiếp theo →", onPress: () => nextQuestion(newScore) }
-                ]);
-            } else {
-                Alert.alert("❌ Sai rồi!", `Đáp án đúng: ${currentQuestion.correctAnswer}`, [
-                    { text: "Tiếp theo →", onPress: () => nextQuestion(score) }
-                ]);
-            }
+            Alert.alert(isCorrect ? "🎉 Chính Xác!" : "❌ Sai rồi!", isCorrect ? "+10 điểm" : `Đáp án: ${currentQuestion.correctAnswer}`, 
+            [{ text: "Tiếp theo", onPress: () => nextQuestion(newScore) }]);
         }, 400);
     };
 
     const nextQuestion = (currentScore) => {
         if (currentIndex < questions.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-            setTextInput('');
-            setIsFlipped(false);
+            setCurrentIndex(prev => prev + 1); setTextInput(''); setIsFlipped(false);
         } else {
-            if (timerRef.current) clearInterval(timerRef.current);
-            Alert.alert("🏁 Kết Thúc!", `Điểm của bạn: ${currentScore} điểm`, [
-                { text: "Về trang chủ", onPress: () => navigation.replace('Home') }
-            ]);
+            Alert.alert("🏁 Kết Thúc!", `Điểm: ${currentScore}`, [{ text: "Về trang chủ", onPress: () => navigation.replace('Home') }]);
         }
     };
+
+
 
     const getOptionStyle = (item, index) => {
         const base = [styles.optionBtn, { backgroundColor: OPTION_COLORS[index % 4] }];

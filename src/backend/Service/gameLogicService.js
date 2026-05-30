@@ -1,5 +1,7 @@
 // src/backend/Service/gameLogicService.js
 import Question from '../Model/Question.js'; 
+import mongoose from 'mongoose';
+import { getDb } from '../../Api/mongoClient.js';
 
 // Đối tượng chứa 10 logic xử lý trò chơi (Giữ nguyên cấu trúc cũ của Thảo)
 export const GameLogics = {
@@ -23,21 +25,17 @@ export const GameLogics = {
 
     // 5. Word Scramble: Xáo trộn từ (ĐÃ FIX LỖI HOÁN VỊ)
     scramble: (word) => {
-        if (!word) return "";
+        if (!word || word.length <= 1) return word; // Thêm check độ dài
         let arr = word.toUpperCase().split('');
         
-        // Vòng lặp xáo trộn ngẫu nhiên vị trí các chữ cái
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            // Hoán vị chuẩn giữa phần tử i và j
             [arr[i], arr[j]] = [arr[j], arr[i]]; 
         }
 
-        // Trường hợp xáo trộn xong lại vô tình trùng khít từ cũ thì đảo lại lần nữa
         const scrambledWord = arr.join('');
-        return scrambledWord === word.toUpperCase() && word.length > 1 
-            ? GameLogics.scramble(word) 
-            : scrambledWord;
+        // Tránh trường hợp xáo trộn xong lại y hệt từ cũ
+        return scrambledWord === word.toUpperCase() ? GameLogics.scramble(word) : scrambledWord;
     },
 
     // 6. Open the box: Chọn hộp quà ngẫu nhiên từ mảng các hộp quà
@@ -79,14 +77,26 @@ export const GameLogics = {
  */
 export const getGameQuestions = async (gameType, limit = 10) => {
     try {
-        // Sử dụng $sample của MongoDB để bốc ngẫu nhiên câu hỏi tránh trùng lặp nhàm chán
-        const questions = await Question.aggregate([
-            { $match: { gameType: gameType } }, // Lọc đúng loại trò chơi (ví dụ: Quiz, TrueFalse...)
-            { $sample: { size: limit } }        // Bốc ngẫu nhiên tối đa 10 câu
-        ]);
-        return questions;
+        const db = getDb(); // Lấy db từ mongoClient
+        
+        // Log để kiểm tra giá trị đầu vào
+        console.log("🔍 Đang tìm kiếm với gameType:", gameType);
+        
+        const allQuestions = await db.collection('questions') // Dùng trực tiếp tên collection gốc
+    .find({ gameType: gameType })
+    .toArray();
+
+        console.log("📊 Số lượng câu hỏi tìm được:", allQuestions.length);
+        
+        if (allQuestions.length === 0) {
+            // Nếu vẫn rỗng, thử log xem database có gì
+            const all = await db.collection('questions').find({}).limit(5).toArray();
+            console.log("💡 Mẫu dữ liệu trong DB hiện tại:", all.map(q => q.gameType));
+        }
+
+        return allQuestions.sort(() => 0.5 - Math.random()).slice(0, Number(limit));
     } catch (error) {
-        console.error(`❌ Lỗi khi lấy câu hỏi cho trò chơi ${gameType}:`, error.message);
+        console.error(`❌ Lỗi truy vấn:`, error.message);
         throw error;
     }
 };

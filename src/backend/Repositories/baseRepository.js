@@ -3,24 +3,35 @@ export class BaseRepository {
         this.model = model;
     }
 
-    async getAll() {
-        return await this.model.find().lean();
+    // Lấy tất cả, hỗ trợ lọc và sắp xếp nếu cần
+    async getAll(filter = {}, sort = { createdAt: -1 }) {
+        return await this.model.find(filter).sort(sort).lean();
     }
 
+    // Tìm một bản ghi
     async findOne(filter) {
-        // XÓA HẾT maxTimeMS
         return await this.model.findOne(filter).lean();
     }
 
+    // Tìm theo ID
+    async findById(id) {
+        return await this.model.findById(id).lean();
+    }
+
+    // Tạo mới
     async create(data) {
-        const newItem = new this.model(data);
-        return await newItem.save();
+        // Trả về object thuần để đồng bộ với .lean() ở các hàm khác
+        const item = await this.model.create(data);
+        return item.toObject(); 
     }
 
+    // Cập nhật
     async update(id, data) {
-        return await this.model.findByIdAndUpdate(id, data, { new: true });
+        // Thêm { new: true } để trả về bản ghi sau khi đã update
+        return await this.model.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
     }
 
+    // Xóa
     async delete(id) {
         return await this.model.findByIdAndDelete(id);
     }

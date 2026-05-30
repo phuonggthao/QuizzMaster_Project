@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity,
-    SafeAreaView, StatusBar, FlatList, Dimensions, Animated
+    View, Text, StyleSheet, TouchableOpacity, StatusBar, FlatList, Dimensions, Animated
 } from 'react-native';
 import { Colors } from '../Styles/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.78;
