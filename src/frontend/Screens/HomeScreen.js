@@ -1,96 +1,106 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  SafeAreaView, StatusBar, ScrollView,
+  SafeAreaView, StatusBar, ScrollView, Alert,
 } from 'react-native';
-import { Colors } from '../Styles/Colors';
+import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
 
-const PLAY_MODES = [
-  {
-    id: '1',
-    title: 'Classic Quiz',
-    desc: 'The standard multiple choice format you know and love. Perfect for quick reviews and focused subject testing.',
-    badge: '⊙ Most Popular',
-    badgeBg: Colors.primaryLight,
-    badgeColor: Colors.primary,
-    btnLabel: 'Play Now →',
-    btnStyle: 'primary',
-    type: 'Quiz',
-    size: 'large',
-    emoji: '💻',
-  },
-  {
-    id: '2',
-    title: 'Duck Race',
-    desc: 'Answer questions fast to move your duck forward. Compete against friends in real-time!',
-    badge: 'Live Multiplayer',
-    badgeBg: Colors.accentLight,
-    badgeColor: Colors.accent,
-    btnLabel: 'Enter Race',
-    btnStyle: 'outline',
-    type: 'TrueFalse',
-    size: 'small',
-    emoji: '🦆',
-  },
-  {
-    id: '3',
-    title: 'Lucky Draw',
-    desc: 'Answer correctly for a chance to spin the wheel and win exclusive power-ups and badges.',
-    badge: 'Bonus Points',
-    badgeBg: '#FEF3C7',
-    badgeColor: '#D97706',
-    btnLabel: 'Try My Luck',
-    btnStyle: 'outline',
-    type: 'LuckyNumber',
-    size: 'small',
-    emoji: '🎰',
-  },
-  {
-    id: '4',
-    title: 'Jigsaw Puzzle',
-    desc: 'Unlock puzzle pieces by answering correctly. Solve the final image for a massive XP boost.',
-    badge: null,
-    btnLabel: 'Start Solving',
-    btnStyle: 'outline',
-    type: 'Flashcard',
-    size: 'small',
-    emoji: '🧩',
-  },
-  {
-    id: '5',
-    title: 'Word Link',
-    desc: 'Connect clues to words in this fast-paced vocabulary challenge. Great for language learners!',
-    badge: null,
-    btnLabel: 'Link Words',
-    btnStyle: 'outline',
-    type: 'WordScramble',
-    size: 'small',
-    emoji: '🔤',
-  },
-];
-
 export default function HomeScreen({ navigation }) {
+  const { isDark, theme: C } = useTheme();
+
+  const PLAY_MODES = [
+    {
+      id: '1',
+      title: 'Classic Quiz',
+      desc: 'The standard multiple choice format you know and love. Perfect for quick reviews and focused subject testing.',
+      badge: '⊙ Most Popular',
+      badgeBg: C.primaryLight,
+      badgeColor: C.primary,
+      btnLabel: 'Play Now →',
+      btnStyle: 'primary',
+      type: 'Quiz',
+      size: 'large',
+      emoji: '💻',
+    },
+    {
+      id: '2',
+      title: 'True or False',
+      desc: 'Test your quick reflexes with binary True or False statements. Speed and accuracy count!',
+      badge: 'Speed Run',
+      badgeBg: C.accentLight,
+      badgeColor: C.accent,
+      btnLabel: 'Play Now →',
+      btnStyle: 'outline',
+      type: 'TrueFalse',
+      size: 'small',
+      emoji: '⚖️',
+    },
+    {
+      id: '3',
+      title: 'Lucky Draw',
+      desc: 'Pick a range and spin the wheel! A random number will be generated — great for lucky draws and random picks.',
+      badge: 'Bonus Points',
+      badgeBg: '#FEF3C7',
+      badgeColor: '#D97706',
+      btnLabel: 'Try My Luck →',
+      btnStyle: 'outline',
+      type: 'LuckyNumber',
+      size: 'small',
+      emoji: '🎰',
+    },
+    {
+      id: '4',
+      title: 'Flashcards',
+      desc: 'Classic study card method. Flip front/back cards to memorize definitions, vocabulary and facts.',
+      badge: 'Memorization',
+      badgeBg: C.primaryLight,
+      badgeColor: C.primary,
+      btnLabel: 'Start Flipping →',
+      btnStyle: 'outline',
+      type: 'Flashcard',
+      size: 'small',
+      emoji: '🎴',
+    },
+    {
+      id: '5',
+      title: 'Word Scramble',
+      desc: 'Unscramble mixed letters back into the correct English vocabulary word. Great for language learners!',
+      badge: 'Spelling',
+      badgeBg: C.accentLight,
+      badgeColor: C.accent,
+      btnLabel: 'Unscramble Now →',
+      btnStyle: 'outline',
+      type: 'WordScramble',
+      size: 'small',
+      emoji: '🔤',
+    },
+  ];
+
   const handlePlay = (type) => {
-    navigation.navigate('Quiz', { gameType: type });
+    if (type === 'LuckyNumber') {
+      navigation.navigate('LuckyNumber');
+    } else {
+      navigation.navigate('Quiz', { gameType: type });
+    }
   };
 
   const largeMode = PLAY_MODES[0];
   const smallModes = PLAY_MODES.slice(1);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bgCard} />
-      <AppHeader navigation={navigation} activeTab="Play" />
+    <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgCard} />
+      <AppHeader navigation={navigation} activeTab="Play" hideBack />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Title */}
         <View style={styles.titleSection}>
-          <Text style={styles.pageTitle}>
-            Choose Your <Text style={styles.pageTitlePurple}>Play Style</Text>
+          <Text style={[styles.pageTitle, { color: C.textPrimary }]}>
+            Choose Your <Text style={[styles.pageTitlePurple, { color: C.primary }]}>Play Style</Text>
           </Text>
-          <Text style={styles.pageSubtitle}>
+          <Text style={[styles.pageSubtitle, { color: C.textMuted }]}>
             Turn your study session into a game. Select a mode to start challenging yourself and earning rewards.
           </Text>
         </View>
@@ -98,16 +108,16 @@ export default function HomeScreen({ navigation }) {
         {/* Top row: large + small */}
         <View style={styles.topRow}>
           {/* Large card */}
-          <View style={styles.largeCard}>
+          <View style={[styles.largeCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
             {largeMode.badge && (
               <View style={[styles.modeBadge, { backgroundColor: largeMode.badgeBg }]}>
                 <Text style={[styles.modeBadgeText, { color: largeMode.badgeColor }]}>{largeMode.badge}</Text>
               </View>
             )}
-            <Text style={styles.largeModeTitle}>{largeMode.title}</Text>
-            <Text style={styles.largeModeDesc}>{largeMode.desc}</Text>
+            <Text style={[styles.largeModeTitle, { color: C.textPrimary }]}>{largeMode.title}</Text>
+            <Text style={[styles.largeModeDesc, { color: C.textMuted }]}>{largeMode.desc}</Text>
             <TouchableOpacity
-              style={styles.btnPrimary}
+              style={[styles.btnPrimary, { backgroundColor: C.primary, shadowColor: C.primary }]}
               onPress={() => handlePlay(largeMode.type)}
               activeOpacity={0.88}
             >
@@ -119,21 +129,21 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           {/* Duck Race card */}
-          <View style={styles.smallCardTop}>
+          <View style={[styles.smallCardTop, { backgroundColor: C.bgCard, borderColor: C.border }]}>
             <View style={[styles.modeBadge, { backgroundColor: smallModes[0].badgeBg, alignSelf: 'flex-start', marginBottom: 8 }]}>
               <Text style={[styles.modeBadgeText, { color: smallModes[0].badgeColor }]}>{smallModes[0].badge}</Text>
             </View>
-            <View style={styles.smallCardThumb}>
+            <View style={[styles.smallCardThumb, { backgroundColor: C.bgApp }]}>
               <Text style={{ fontSize: 48 }}>{smallModes[0].emoji}</Text>
             </View>
-            <Text style={styles.smallModeTitle}>{smallModes[0].title}</Text>
-            <Text style={styles.smallModeDesc}>{smallModes[0].desc}</Text>
+            <Text style={[styles.smallModeTitle, { color: C.textPrimary }]}>{smallModes[0].title}</Text>
+            <Text style={[styles.smallModeDesc, { color: C.textMuted }]}>{smallModes[0].desc}</Text>
             <TouchableOpacity
-              style={styles.btnOutline}
+              style={[styles.btnOutline, { borderColor: C.primary }]}
               onPress={() => handlePlay(smallModes[0].type)}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnOutlineText}>{smallModes[0].btnLabel}</Text>
+              <Text style={[styles.btnOutlineText, { color: C.primary }]}>{smallModes[0].btnLabel}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -141,30 +151,30 @@ export default function HomeScreen({ navigation }) {
         {/* Bottom row: 3 small cards */}
         <View style={styles.bottomRow}>
           {smallModes.slice(1).map((mode) => (
-            <View key={mode.id} style={styles.bottomCard}>
-              <View style={styles.bottomCardThumb}>
+            <View key={mode.id} style={[styles.bottomCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+              <View style={[styles.bottomCardThumb, { backgroundColor: C.bgApp }]}>
                 <Text style={{ fontSize: 36 }}>{mode.emoji}</Text>
                 {mode.badge && (
-                  <View style={[styles.thumbBadge, { backgroundColor: mode.badgeBg || Colors.primaryLight }]}>
-                    <Text style={[styles.thumbBadgeText, { color: mode.badgeColor || Colors.primary }]}>{mode.badge}</Text>
+                  <View style={[styles.thumbBadge, { backgroundColor: mode.badgeBg || C.primaryLight }]}>
+                    <Text style={[styles.thumbBadgeText, { color: mode.badgeColor || C.primary }]}>{mode.badge}</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.bottomModeTitle}>{mode.title}</Text>
-              <Text style={styles.bottomModeDesc}>{mode.desc}</Text>
+              <Text style={[styles.bottomModeTitle, { color: C.textPrimary }]}>{mode.title}</Text>
+              <Text style={[styles.bottomModeDesc, { color: C.textMuted }]}>{mode.desc}</Text>
               <TouchableOpacity
-                style={styles.btnOutline}
+                style={[styles.btnOutline, { borderColor: C.primary }]}
                 onPress={() => handlePlay(mode.type)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.btnOutlineText}>{mode.btnLabel}</Text>
+                <Text style={[styles.btnOutlineText, { color: C.primary }]}>{mode.btnLabel}</Text>
               </TouchableOpacity>
             </View>
           ))}
         </View>
 
         {/* Streak Banner */}
-        <View style={styles.streakBanner}>
+        <View style={[styles.streakBanner, { backgroundColor: C.primary, shadowColor: C.primary }]}>
           <View style={styles.streakIconWrap}>
             <Text style={{ fontSize: 22 }}>⚡</Text>
           </View>
@@ -180,14 +190,20 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerLogo}>QuizMates</Text>
+        <View style={[styles.footer, { borderTopColor: C.border }]}>
+          <Text style={[styles.footerLogo, { color: C.primary }]}>QuizMates</Text>
           <View style={styles.footerLinks}>
-            <Text style={styles.footerLink}>Privacy Policy</Text>
-            <Text style={styles.footerLink}>Terms of Service</Text>
-            <Text style={styles.footerLink}>Help Center</Text>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Terms of Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Help Center</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.footerCopy}>© 2024 QuizMates. Keeplearning!</Text>
+          <Text style={[styles.footerCopy, { color: C.textMuted }]}>© 2024 QuizMates. Keep learning!</Text>
         </View>
 
       </ScrollView>
@@ -196,7 +212,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgApp },
+  container: { flex: 1 },
   scroll: { paddingBottom: 40 },
 
   titleSection: {
@@ -204,9 +220,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 24,
   },
-  pageTitle: { fontSize: 26, fontWeight: '900', color: Colors.textPrimary, marginBottom: 10 },
-  pageTitlePurple: { color: Colors.primary },
-  pageSubtitle: { fontSize: 13, color: Colors.textMuted, lineHeight: 19 },
+  pageTitle: { fontSize: 26, fontWeight: '900', marginBottom: 10 },
+  pageTitlePurple: {},
+  pageSubtitle: { fontSize: 13, lineHeight: 19 },
 
   // Top row
   topRow: {
@@ -217,11 +233,9 @@ const styles = StyleSheet.create({
   },
   largeCard: {
     flex: 1.4,
-    backgroundColor: Colors.bgCard,
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -238,8 +252,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modeBadgeText: { fontSize: 11, fontWeight: '700' },
-  largeModeTitle: { fontSize: 20, fontWeight: '900', color: Colors.textPrimary, marginBottom: 8 },
-  largeModeDesc: { fontSize: 12, color: Colors.textMuted, lineHeight: 17, marginBottom: 16 },
+  largeModeTitle: { fontSize: 20, fontWeight: '900', marginBottom: 8 },
+  largeModeDesc: { fontSize: 12, lineHeight: 17, marginBottom: 16 },
   largeCardEmoji: {
     position: 'absolute',
     right: 10,
@@ -249,11 +263,9 @@ const styles = StyleSheet.create({
 
   smallCardTop: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -262,14 +274,13 @@ const styles = StyleSheet.create({
   },
   smallCardThumb: {
     height: 80,
-    backgroundColor: Colors.bgApp,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
-  smallModeTitle: { fontSize: 15, fontWeight: '800', color: Colors.textPrimary, marginBottom: 5 },
-  smallModeDesc: { fontSize: 11, color: Colors.textMuted, lineHeight: 15, marginBottom: 12 },
+  smallModeTitle: { fontSize: 15, fontWeight: '800', marginBottom: 5 },
+  smallModeDesc: { fontSize: 11, lineHeight: 15, marginBottom: 12 },
 
   // Bottom row
   bottomRow: {
@@ -280,11 +291,9 @@ const styles = StyleSheet.create({
   },
   bottomCard: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -293,7 +302,6 @@ const styles = StyleSheet.create({
   },
   bottomCardThumb: {
     height: 70,
-    backgroundColor: Colors.bgApp,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -309,18 +317,16 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   thumbBadgeText: { fontSize: 8, fontWeight: '800' },
-  bottomModeTitle: { fontSize: 13, fontWeight: '800', color: Colors.textPrimary, marginBottom: 4 },
-  bottomModeDesc: { fontSize: 10, color: Colors.textMuted, lineHeight: 14, marginBottom: 10 },
+  bottomModeTitle: { fontSize: 13, fontWeight: '800', marginBottom: 4 },
+  bottomModeDesc: { fontSize: 10, lineHeight: 14, marginBottom: 10 },
 
   // Buttons
   btnPrimary: {
-    backgroundColor: Colors.primary,
     borderRadius: 10,
     paddingVertical: 11,
     paddingHorizontal: 18,
     alignSelf: 'flex-start',
     elevation: 3,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -328,17 +334,15 @@ const styles = StyleSheet.create({
   btnPrimaryText: { color: '#fff', fontWeight: '800', fontSize: 13 },
   btnOutline: {
     borderWidth: 1.5,
-    borderColor: Colors.primary,
     borderRadius: 10,
     paddingVertical: 9,
     alignItems: 'center',
   },
-  btnOutlineText: { color: Colors.primary, fontWeight: '700', fontSize: 12 },
+  btnOutlineText: { fontWeight: '700', fontSize: 12 },
 
   // Streak banner
   streakBanner: {
     marginHorizontal: 20,
-    backgroundColor: Colors.primary,
     borderRadius: 16,
     padding: 18,
     flexDirection: 'row',
@@ -346,7 +350,6 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 32,
     elevation: 4,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -374,12 +377,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     alignItems: 'center',
     gap: 6,
   },
-  footerLogo: { fontSize: 15, fontWeight: '900', color: Colors.primary },
+  footerLogo: { fontSize: 15, fontWeight: '900' },
   footerLinks: { flexDirection: 'row', gap: 16 },
-  footerLink: { fontSize: 11, color: Colors.textMuted, fontWeight: '600' },
-  footerCopy: { fontSize: 11, color: Colors.textMuted },
+  footerLink: { fontSize: 11, fontWeight: '600' },
+  footerCopy: { fontSize: 11 },
 });

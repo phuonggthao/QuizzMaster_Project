@@ -17,9 +17,25 @@ const GUEST_QUESTIONS = {
         { _id: 'tf3', questionText: 'Hà Nội là thủ đô Việt Nam?', options: ['Đúng', 'Sai'], correctAnswer: 'Đúng', category: 'Địa lý' },
     ],
     Flashcard: [
-        { _id: 'fc1', questionText: 'Hello nghĩa là gì?', correctAnswer: 'Xin chào', category: 'Tiếng Anh' },
-        { _id: 'fc2', questionText: 'Apple nghĩa là gì?', correctAnswer: 'Quả táo', category: 'Tiếng Anh' },
-        { _id: 'fc3', questionText: 'Water nghĩa là gì?', correctAnswer: 'Nước', category: 'Tiếng Anh' },
+        { _id: 'fc1', questionText: '"Xin chào" trong tiếng Anh là gì?', correctAnswer: 'Hello', category: 'Tiếng Anh' },
+        { _id: 'fc2', questionText: '"Quả táo" trong tiếng Anh là gì?', correctAnswer: 'Apple', category: 'Tiếng Anh' },
+        { _id: 'fc3', questionText: '"Nước" trong tiếng Anh là gì?', correctAnswer: 'Water', category: 'Tiếng Anh' },
+    ],
+    WordScramble: [
+        { _id: 'ws1', questionText: 'Sắp xếp lại các chữ cái thành từ đúng:', correctAnswer: 'APPLE', category: 'Tiếng Anh' },
+        { _id: 'ws2', questionText: 'Sắp xếp lại các chữ cái thành từ đúng:', correctAnswer: 'WATER', category: 'Tiếng Anh' },
+        { _id: 'ws3', questionText: 'Sắp xếp lại các chữ cái thành từ đúng:', correctAnswer: 'SCHOOL', category: 'Tiếng Anh' },
+    ],
+    // LuckyNumber: correctAnswer là số ngẫu nhiên được sinh ra mỗi lượt — xem LuckyNumberScreen.js
+    LuckyNumber: [
+        { _id: 'ln1', questionText: '🍀 Chọn con số may mắn của bạn!', correctAnswer: null, category: 'May mắn' },
+        { _id: 'ln2', questionText: '🎰 Thử vận may — chọn một con số!', correctAnswer: null, category: 'May mắn' },
+        { _id: 'ln3', questionText: '✨ Con số nào sẽ mang lại may mắn?', correctAnswer: null, category: 'May mắn' },
+    ],
+    FillInBlank: [
+        { _id: 'fb1', questionText: 'Thủ đô của Pháp là ___', correctAnswer: 'Paris', category: 'Địa lý' },
+        { _id: 'fb2', questionText: 'Công thức nước là H_O', correctAnswer: '2', category: 'Khoa học' },
+        { _id: 'fb3', questionText: 'Ngôn ngữ lập trình ___ được dùng để phát triển React Native', correctAnswer: 'JavaScript', category: 'Công nghệ' },
     ],
 };
 

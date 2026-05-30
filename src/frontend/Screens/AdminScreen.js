@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker'; // Thảo nhớ cài: npx expo install @react-native-picker/picker
+import { Picker } from '@react-native-picker/picker';
 import BASE_URL from '../config';
+import { useTheme } from '../context/ThemeContext';
 
 export default function AdminScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
+    const { theme: C } = useTheme();
     
     // State quản lý form câu hỏi
     const [gameType, setGameType] = useState('Quiz');
@@ -63,36 +65,55 @@ export default function AdminScreen({ navigation }) {
     };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={styles.title}>🛠️ Quản Trị Câu Hỏi</Text>
+        <ScrollView style={[styles.container, { backgroundColor: C.bgApp }]} contentContainerStyle={{ paddingBottom: 40, padding: 20 }}>
+            <View style={styles.adminHeader}>
+                <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backBtn}>
+                    <Text style={[styles.backBtnText, { color: C.primary }]}>←</Text>
+                </TouchableOpacity>
+                <Text style={[styles.title, { color: C.textPrimary }]}>🛠️ Quản Trị Câu Hỏi</Text>
+                <View style={styles.backBtn} />
+            </View>
             
-            <Text style={styles.label}>1. Chọn loại trò chơi:</Text>
-            <View style={styles.pickerContainer}>
-                <Picker selectedValue={gameType} onValueChange={(item) => setGameType(item)}>
-                    <Picker.Item label="🧠 Trắc nghiệm lựa chọn (Quiz)" value="Quiz" />
-                    <Picker.Item label="🖼️ Ghép cặp thẻ bài (Matching)" value="Matching" />
-                    <Picker.Item label="🎲 Vòng quay số may mắn (LuckyNumber)" value="LuckyNumber" />
-                    <Picker.Item label="🎴 Thẻ bài Flashcards (Flashcard)" value="Flashcard" />
-                    <Picker.Item label="🧩 Từ xáo trộn (WordScramble)" value="WordScramble" />
-                    <Picker.Item label="🎁 Hộp quà bí ẩn (OpenBox)" value="OpenBox" />
-                    <Picker.Item label="🎤 Nhìn hình đoán chữ (PictureQuiz)" value="PictureQuiz" />
-                    <Picker.Item label="⚖️ Đúng hoặc Sai (TrueFalse)" value="TrueFalse" />
-                    <Picker.Item label="🎡 Vòng quay kịch tính (SimpleSpin)" value="SimpleSpin" />
-                    <Picker.Item label="🎯 Tìm hình trùng khớp (FindMatch)" value="FindMatch" />
+            <Text style={[styles.label, { color: C.textSecondary }]}>1. Chọn loại trò chơi:</Text>
+            <View style={[styles.pickerContainer, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+                <Picker
+                    selectedValue={gameType}
+                    onValueChange={(item) => setGameType(item)}
+                    dropdownIconColor={C.textPrimary}
+                    style={{ color: C.textPrimary }}
+                >
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🧠 Trắc nghiệm lựa chọn (Quiz)" value="Quiz" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🖼️ Ghép cặp thẻ bài (Matching)" value="Matching" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🎲 Vòng quay số may mắn (LuckyNumber)" value="LuckyNumber" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🎴 Thẻ bài Flashcards (Flashcard)" value="Flashcard" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🧩 Từ xáo trộn (WordScramble)" value="WordScramble" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🎁 Hộp quà bí ẩn (OpenBox)" value="OpenBox" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🎤 Nhìn hình đoán chữ (PictureQuiz)" value="PictureQuiz" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="⚖️ Đúng hoặc Sai (TrueFalse)" value="TrueFalse" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🎡 Vòng quay kịch tính (SimpleSpin)" value="SimpleSpin" />
+                    <Picker.Item style={{ backgroundColor: C.bgCard, color: C.textPrimary }} label="🎯 Tìm hình trùng khớp (FindMatch)" value="FindMatch" />
                 </Picker>
             </View>
-            <Text style={styles.label}>2. Nội dung câu hỏi:</Text>
-            <TextInput style={styles.input} placeholder="Nhập câu hỏi tại đây..." value={questionText} onChangeText={setQuestionText} multiline />
+            <Text style={[styles.label, { color: C.textSecondary }]}>2. Nội dung câu hỏi:</Text>
+            <TextInput
+                style={[styles.input, { backgroundColor: C.bgCard, borderColor: C.border, color: C.textPrimary }]}
+                placeholder="Nhập câu hỏi tại đây..."
+                placeholderTextColor={C.textMuted}
+                value={questionText}
+                onChangeText={setQuestionText}
+                multiline
+            />
 
             {/* Nếu là trò Quiz thì hiện 4 ô nhập lựa chọn */}
             {gameType === 'Quiz' && (
                 <View>
-                    <Text style={styles.label}>3. Các lựa chọn (Options):</Text>
+                    <Text style={[styles.label, { color: C.textSecondary }]}>3. Các lựa chọn (Options):</Text>
                     {options.map((opt, index) => (
                         <TextInput 
                             key={index}
-                            style={styles.input} 
-                            placeholder={`Lựa chọn ${index + 1}`} 
+                            style={[styles.input, { backgroundColor: C.bgCard, borderColor: C.border, color: C.textPrimary }]}
+                            placeholder={`Lựa chọn ${index + 1}`}
+                            placeholderTextColor={C.textMuted}
                             value={opt} 
                             onChangeText={(text) => {
                                 let newOpts = [...options];
@@ -104,31 +125,57 @@ export default function AdminScreen({ navigation }) {
                 </View>
             )}
 
-            <Text style={styles.label}>{gameType === 'Quiz' ? '4.' : '3.'} Đáp án đúng:</Text>
-            <TextInput style={styles.input} placeholder="Gõ chính xác đáp án đúng..." value={correctAnswer} onChangeText={setCorrectAnswer} />
+            <Text style={[styles.label, { color: C.textSecondary }]}>{gameType === 'Quiz' ? '4.' : '3.'} Đáp án đúng:</Text>
+            <TextInput
+                style={[styles.input, { backgroundColor: C.bgCard, borderColor: C.border, color: C.textPrimary }]}
+                placeholder="Gõ chính xác đáp án đúng..."
+                placeholderTextColor={C.textMuted}
+                value={correctAnswer}
+                onChangeText={setCorrectAnswer}
+            />
 
-            <Text style={styles.label}>Chủ đề (Category):</Text>
-            <TextInput style={styles.input} placeholder="Ví dụ: Toán học, Lịch sử..." value={category} onChangeText={setCategory} />
+            <Text style={[styles.label, { color: C.textSecondary }]}>Chủ đề (Category):</Text>
+            <TextInput
+                style={[styles.input, { backgroundColor: C.bgCard, borderColor: C.border, color: C.textPrimary }]}
+                placeholder="Ví dụ: Toán học, Lịch sử..."
+                placeholderTextColor={C.textMuted}
+                value={category}
+                onChangeText={setCategory}
+            />
 
-            <TouchableOpacity style={styles.submitBtn} onPress={handleAddQuestion} disabled={loading}>
+            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: C.primary }]} onPress={handleAddQuestion} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Thêm vào hệ thống</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={() => navigation.replace('Login')}>
-                <Text style={styles.logoutBtnText}>Đăng xuất khỏi Admin</Text>
+                <Text style={[styles.logoutBtnText, { color: C.wrong }]}>Đăng xuất khỏi Admin</Text>
             </TouchableOpacity>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f4f7', padding: 20 },
-    title: { fontSize: 28, fontWeight: 'bold', color: '#333', marginBottom: 25, textAlign: 'center' },
-    label: { fontSize: 16, fontWeight: 'bold', color: '#555', marginBottom: 8, marginTop: 10 },
-    input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#d1d9e0', padding: 12, borderRadius: 10, fontSize: 16, marginBottom: 15 },
-    pickerContainer: { backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#d1d9e0', marginBottom: 15, overflow: 'hidden' },
-    submitBtn: { backgroundColor: '#4CAF50', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 20, elevation: 3 },
+    container: { flex: 1 },
+    adminHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    backBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    backBtnText: { fontSize: 22, fontWeight: '700' },
+    title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center' },
+    label: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, marginTop: 10 },
+    input: { borderWidth: 1, padding: 12, borderRadius: 10, fontSize: 16, marginBottom: 15 },
+    pickerContainer: { borderRadius: 10, borderWidth: 1, marginBottom: 15, overflow: 'hidden' },
+    submitBtn: { padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 20, elevation: 3 },
     submitBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
     logoutBtn: { marginTop: 30, padding: 10, alignItems: 'center' },
-    logoutBtnText: { color: '#f44336', fontWeight: 'bold' }
+    logoutBtnText: { fontWeight: 'bold' }
 });

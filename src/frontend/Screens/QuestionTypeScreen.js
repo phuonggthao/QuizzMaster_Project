@@ -3,57 +3,58 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, ScrollView,
 } from 'react-native';
-import { Colors } from '../Styles/Colors';
-
-const QUESTION_TYPES = [
-  {
-    id: '1',
-    emoji: '🎮',
-    title: 'Trắc nghiệm',
-    desc: 'Học sinh chọn một hoặc nhiều đáp án từ danh sách lựa chọn có sẵn.',
-    badge: 'PHỔ BIẾN',
-    badgeColor: Colors.primary,
-    badgeBg: Colors.primaryLight,
-  },
-  {
-    id: '2',
-    emoji: '📝',
-    title: 'Điền vào chỗ trống',
-    desc: 'Học sinh tự nhập câu trả lời ngắn vào ô trống được cung cấp.',
-    badge: null,
-  },
-  {
-    id: '3',
-    emoji: '💬',
-    title: 'Câu hỏi mở',
-    desc: 'Khuyến khích học sinh trình bày quan điểm và suy nghĩ cá nhân.',
-    badge: null,
-  },
-  {
-    id: '4',
-    emoji: '📊',
-    title: 'Khảo sát',
-    desc: 'Thu thập ý kiến phản hồi từ học sinh, không có đáp án đúng/sai.',
-    badge: null,
-  },
-  {
-    id: '5',
-    emoji: '🎨',
-    title: 'Vẽ',
-    desc: 'Yêu cầu học sinh minh họa câu trả lời bằng hình vẽ trực tiếp.',
-    badge: null,
-  },
-  {
-    id: '6',
-    emoji: '🔤',
-    title: 'Sắp xếp chữ tự',
-    desc: 'Kéo và thả các mục để sắp xếp theo thứ tự đúng.',
-    badge: null,
-  },
-];
+import { useTheme } from '../context/ThemeContext';
 
 export default function QuestionTypeScreen({ navigation }) {
   const [selectedTypes, setSelectedTypes] = useState(['1']);
+  const { isDark, theme: C } = useTheme();
+
+  const QUESTION_TYPES = [
+    {
+      id: '1',
+      emoji: '🎮',
+      title: 'Trắc nghiệm',
+      desc: 'Học sinh chọn một hoặc nhiều đáp án từ danh sách lựa chọn có sẵn.',
+      badge: 'PHỔ BIẾN',
+      badgeColor: C.primary,
+      badgeBg: C.primaryLight,
+    },
+    {
+      id: '2',
+      emoji: '📝',
+      title: 'Điền vào chỗ trống',
+      desc: 'Học sinh tự nhập câu trả lời ngắn vào ô trống được cung cấp.',
+      badge: null,
+    },
+    {
+      id: '3',
+      emoji: '💬',
+      title: 'Câu hỏi mở',
+      desc: 'Khuyến khích học sinh trình bày quan điểm và suy nghĩ cá nhân.',
+      badge: null,
+    },
+    {
+      id: '4',
+      emoji: '📊',
+      title: 'Khảo sát',
+      desc: 'Thu thập ý kiến phản hồi từ học sinh, không có đáp án đúng/sai.',
+      badge: null,
+    },
+    {
+      id: '5',
+      emoji: '🎨',
+      title: 'Vẽ',
+      desc: 'Yêu cầu học sinh minh họa câu trả lời bằng hình vẽ trực tiếp.',
+      badge: null,
+    },
+    {
+      id: '6',
+      emoji: '🔤',
+      title: 'Sắp xếp chữ tự',
+      desc: 'Kéo và thả các mục để sắp xếp theo thứ tự đúng.',
+      badge: null,
+    },
+  ];
 
   const toggleType = (id) => {
     setSelectedTypes((prev) =>
@@ -62,19 +63,19 @@ export default function QuestionTypeScreen({ navigation }) {
   };
 
   const handleContinue = () => {
-    navigation.navigate('Home');
+    navigation.navigate('Admin');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
+    <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Text style={styles.closeBtn}>✕</Text>
+          <Text style={[styles.closeBtn, { color: C.textMuted }]}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.headerLogo}>QuizMates</Text>
+        <Text style={[styles.headerLogo, { color: C.primary }]}>QuizMates</Text>
         <View style={styles.draftBadge}>
           <Text style={styles.draftBadgeText}>Bản nháp</Text>
         </View>
@@ -83,17 +84,17 @@ export default function QuestionTypeScreen({ navigation }) {
       {/* Progress */}
       <View style={styles.progressSection}>
         <View style={styles.progressRow}>
-          <Text style={styles.progressLabel}>25% Hoàn thành</Text>
+          <Text style={[styles.progressLabel, { color: C.primary }]}>25% Hoàn thành</Text>
         </View>
-        <View style={styles.progressBarBg}>
-          <View style={styles.progressBarFill} />
+        <View style={[styles.progressBarBg, { backgroundColor: C.border }]}>
+          <View style={[styles.progressBarFill, { backgroundColor: C.primary }]} />
         </View>
       </View>
 
       {/* Title */}
       <View style={styles.titleSection}>
-        <Text style={styles.pageTitle}>Các loại câu hỏi đa dạng</Text>
-        <Text style={styles.pageSubtitle}>
+        <Text style={[styles.pageTitle, { color: C.textPrimary }]}>Các loại câu hỏi đa dạng</Text>
+        <Text style={[styles.pageSubtitle, { color: C.textMuted }]}>
           Chọn loại câu hỏi phù hợp để tạo bài kiểm tra hấp dẫn cho học sinh
         </Text>
       </View>
@@ -108,19 +109,31 @@ export default function QuestionTypeScreen({ navigation }) {
           return (
             <TouchableOpacity
               key={type.id}
-              style={[styles.typeCard, isSelected && styles.typeCardSelected]}
+              style={[
+                styles.typeCard,
+                { backgroundColor: C.bgCard, borderColor: C.border },
+                isSelected && { borderColor: C.primary, backgroundColor: C.primaryLight }
+              ]}
               onPress={() => toggleType(type.id)}
               activeOpacity={0.85}
             >
               {/* Left: emoji */}
-              <View style={[styles.typeIconWrap, isSelected && styles.typeIconWrapSelected]}>
+              <View style={[
+                styles.typeIconWrap,
+                { backgroundColor: C.bgApp },
+                isSelected && styles.typeIconWrapSelected
+              ]}>
                 <Text style={styles.typeEmoji}>{type.emoji}</Text>
               </View>
 
               {/* Center: info */}
               <View style={styles.typeInfo}>
                 <View style={styles.typeTitleRow}>
-                  <Text style={[styles.typeTitle, isSelected && styles.typeTitleSelected]}>
+                  <Text style={[
+                    styles.typeTitle,
+                    { color: C.textPrimary },
+                    isSelected && { color: C.primary }
+                  ]}>
                     {type.title}
                   </Text>
                   {type.badge && (
@@ -131,11 +144,15 @@ export default function QuestionTypeScreen({ navigation }) {
                     </View>
                   )}
                 </View>
-                <Text style={styles.typeDesc}>{type.desc}</Text>
+                <Text style={[styles.typeDesc, { color: C.textMuted }]}>{type.desc}</Text>
               </View>
 
               {/* Right: check */}
-              <View style={[styles.typeCheck, isSelected && styles.typeCheckSelected]}>
+              <View style={[
+                styles.typeCheck,
+                { borderColor: C.border },
+                isSelected && { backgroundColor: C.primary, borderColor: C.primary }
+              ]}>
                 {isSelected && <Text style={styles.typeCheckMark}>✓</Text>}
               </View>
             </TouchableOpacity>
@@ -144,21 +161,25 @@ export default function QuestionTypeScreen({ navigation }) {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: C.bgApp, borderTopColor: C.border }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Text style={styles.backBtnText}>Quay lại</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.sampleBtn} activeOpacity={0.8} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })}>
-          <Text style={styles.sampleBtnText}>Dùng thử câu hỏi mẫu</Text>
+          <Text style={[styles.backBtnText, { color: C.textMuted }]}>Quay lại</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.continueBtn}
+          style={[styles.sampleBtn, { borderColor: C.primary, backgroundColor: C.bgCard }]}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })}
+        >
+          <Text style={[styles.sampleBtnText, { color: C.primary }]}>Dùng thử câu hỏi mẫu</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.continueBtn, { backgroundColor: C.primary, shadowColor: C.primary }]}
           onPress={handleContinue}
           activeOpacity={0.88}
         >
@@ -175,7 +196,7 @@ export default function QuestionTypeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgApp },
+  container: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 20 },
 
@@ -188,8 +209,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
   },
-  closeBtn: { fontSize: 20, color: Colors.textMuted, fontWeight: '700' },
-  headerLogo: { flex: 1, fontSize: 18, fontWeight: '900', color: Colors.primary },
+  closeBtn: { fontSize: 20, fontWeight: '700' },
+  headerLogo: { flex: 1, fontSize: 18, fontWeight: '900' },
   draftBadge: {
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 10,
@@ -208,17 +229,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginBottom: 6,
   },
-  progressLabel: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
+  progressLabel: { fontSize: 12, fontWeight: '700' },
   progressBarBg: {
     height: 6,
-    backgroundColor: Colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: 6,
     width: '25%',
-    backgroundColor: Colors.primary,
     borderRadius: 3,
   },
 
@@ -230,12 +249,10 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: Colors.textPrimary,
     marginBottom: 6,
   },
   pageSubtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
     lineHeight: 18,
   },
 
@@ -243,12 +260,10 @@ const styles = StyleSheet.create({
   typeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bgCard,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     gap: 14,
     elevation: 1,
     shadowColor: '#000',
@@ -256,15 +271,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 4,
   },
-  typeCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-  },
   typeIconWrap: {
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: Colors.bgApp,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -283,9 +293,7 @@ const styles = StyleSheet.create({
   typeTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.textPrimary,
   },
-  typeTitleSelected: { color: Colors.primary },
   typeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -294,7 +302,6 @@ const styles = StyleSheet.create({
   typeBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   typeDesc: {
     fontSize: 12,
-    color: Colors.textMuted,
     lineHeight: 17,
   },
   typeCheck: {
@@ -302,13 +309,8 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  typeCheckSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
   },
   typeCheckMark: { color: '#fff', fontWeight: '900', fontSize: 14 },
 
@@ -319,28 +321,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     gap: 8,
-    backgroundColor: Colors.bgApp,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   backBtn: {
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
-  backBtnText: { fontSize: 14, fontWeight: '700', color: Colors.textMuted },
+  backBtnText: { fontSize: 14, fontWeight: '700' },
   sampleBtn: {
     flex: 1,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.bgCard,
   },
-  sampleBtnText: { fontSize: 12, fontWeight: '700', color: Colors.primary },
+  sampleBtnText: { fontSize: 12, fontWeight: '700' },
   continueBtn: {
     flex: 1.2,
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -348,7 +345,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     elevation: 4,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,

@@ -14,7 +14,8 @@ const QuestionSchema = new mongoose.Schema({
             'PictureQuiz',  // 7. Nhận diện và đoán hình ảnh
             'TrueFalse',    // 8. Quyết định nhanh Đúng/Sai
             'SimpleSpin',   // 9. Vòng quay may mắn tính góc xoay
-            'FindMatch'     // 10. Tìm hình lựa chọn khớp với mục tiêu
+            'FindMatch',    // 10. Tìm hình lựa chọn khớp với mục tiêu
+            'FillInBlank',  // 11. Điền vào chỗ trống
         ]
     },
     category:      { type: String, required: true },    // Ví dụ: Toán, Lý, Tiếng Anh, Logic

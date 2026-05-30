@@ -78,12 +78,50 @@ export const processGameOver = async (userId, gameType, correctAnswersCount) => 
  */
 export const getLeaderboard = async () => {
     try {
-        // Chỉ lấy những tài khoản có role là 'User', sắp xếp giảm dần theo điểm và giới hạn lấy 10 người
         return await User.find({ role: 'User' })
             .sort({ highScore: -1 })
             .limit(10)
             .select('fullName username highScore level');
     } catch (error) {
         throw new Error("Lỗi tải bảng xếp hạng: " + error.message);
+    }
+};
+
+/**
+ * Lấy lịch sử chơi gần đây của một user (10 lượt gần nhất)
+ */
+export const getUserHistory = async (userId) => {
+    try {
+        const history = await Score.find({ userId })
+            .sort({ playedAt: -1 })
+            .limit(10)
+            .select('gameType points accuracy playedAt');
+        return history;
+    } catch (error) {
+        throw new Error("Lỗi tải lịch sử chơi: " + error.message);
+    }
+};
+
+/**
+ * Lấy thống kê tổng hợp cho trang Report (Admin)
+ */
+export const getReportStats = async () => {
+    try {
+        const totalPlays = await Score.countDocuments();
+        const totalUsers = await User.countDocuments({ role: 'User' });
+        const allScores = await Score.find().select('points');
+        const totalPoints = allScores.reduce((sum, s) => sum + (s.points || 0), 0);
+        const avgScore = totalPlays > 0 ? Math.round(totalPoints / totalPlays) : 0;
+
+        // Lịch sử 10 lượt gần nhất (gộp tất cả user)
+        const recentPlays = await Score.find()
+            .populate('userId', 'fullName username')
+            .sort({ playedAt: -1 })
+            .limit(10)
+            .select('gameType points playedAt userId');
+
+        return { totalPlays, totalUsers, avgScore, recentPlays };
+    } catch (error) {
+        throw new Error("Lỗi tải báo cáo: " + error.message);
     }
 };

@@ -1,17 +1,10 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  SafeAreaView, StatusBar, ScrollView,
+  SafeAreaView, StatusBar, ScrollView, Alert,
 } from 'react-native';
-import { Colors } from '../Styles/Colors';
+import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
-
-const TRENDING = [
-  { id: '1', title: 'Advanced Calculus & Fractals', subject: 'MATHEMATICS', players: '1.2k Playing', color: Colors.primary },
-  { id: '2', title: 'The Quantum World', subject: 'SCIENCE', questions: '46 Questions', level: 'Expert Level', color: '#059669' },
-  { id: '3', title: 'Modern Wars', students: '320 Students', color: Colors.bgCard },
-  { id: '4', title: 'World Map', students: '890 Students', color: Colors.bgCard },
-];
 
 const FEATURES = [
   { id: '1', icon: '🏆', title: 'Win Rewards', desc: 'Collect points as you study and redeem them for cool digital badges and community perks.' },
@@ -20,45 +13,54 @@ const FEATURES = [
 ];
 
 export default function LandingScreen({ navigation }) {
+  const { isDark, theme: C } = useTheme();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bgCard} />
+    <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgCard} />
       <AppHeader navigation={navigation} activeTab="Play" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Hero */}
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: C.bgCard }]}>
           <View style={styles.heroLeft}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>🟢 Join 50k+ students today!</Text>
+            <View style={[styles.heroBadge, { backgroundColor: C.accentLight }]}>
+              <Text style={[styles.heroBadgeText, { color: C.accent }]}>🟢 Join 50k+ students today!</Text>
             </View>
-            <Text style={styles.heroTitle}>Study Harder,{'\n'}<Text style={styles.heroTitlePurple}>Play Better Together.</Text></Text>
-            <Text style={styles.heroSubtitle}>Transform your study sessions into epic quiz battles. Challenge friends, climb leaderboards, and master any subject with QuizMates.</Text>
+            <Text style={[styles.heroTitle, { color: C.textPrimary }]}>
+              Study Harder,{'\n'}
+              <Text style={[styles.heroTitlePurple, { color: C.primary }]}>Play Better Together.</Text>
+            </Text>
+            <Text style={[styles.heroSubtitle, { color: C.textMuted }]}>Transform your study sessions into epic quiz battles. Challenge friends, climb leaderboards, and master any subject with QuizMates.</Text>
             <View style={styles.heroActions}>
-              <TouchableOpacity style={styles.playBtn} onPress={() => navigation.navigate('Home')} activeOpacity={0.88}>
+              <TouchableOpacity style={[styles.playBtn, { backgroundColor: C.primary, shadowColor: C.primary }]} onPress={() => navigation.navigate('Home')} activeOpacity={0.88}>
                 <Text style={styles.playBtnText}>▶ Play Now</Text>
               </TouchableOpacity>
-              <View style={styles.searchBox}>
+              <TouchableOpacity
+                style={[styles.searchBox, { backgroundColor: C.bgApp, borderColor: C.border }]}
+                onPress={() => navigation.navigate('Explore')}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.searchIcon}>🔍</Text>
-                <Text style={styles.searchPlaceholder}>Search topics e.g., Ancient R...</Text>
-              </View>
+                <Text style={[styles.searchPlaceholder, { color: C.textMuted }]}>Search topics e.g., Ancient R...</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.friendsRow}>
               <Text style={styles.friendsAvatars}>👤👤👤</Text>
-              <Text style={styles.friendsText}>Friends are online & ready to play!</Text>
+              <Text style={[styles.friendsText, { color: C.textMuted }]}>Friends are online & ready to play!</Text>
             </View>
           </View>
 
           <View style={styles.heroRight}>
-            <View style={styles.heroImage}>
+            <View style={[styles.heroImage, { backgroundColor: C.primaryLight }]}>
               <Text style={styles.heroImageEmoji}>📱</Text>
             </View>
-            <View style={styles.streakBadge}>
+            <View style={[styles.streakBadge, { backgroundColor: C.bgCard, borderColor: C.border }]}>
               <Text style={styles.streakIcon}>📈</Text>
               <View>
-                <Text style={styles.streakLabel}>Daily Streak</Text>
-                <Text style={styles.streakValue}>12 Days</Text>
+                <Text style={[styles.streakLabel, { color: C.textMuted }]}>Daily Streak</Text>
+                <Text style={[styles.streakValue, { color: C.textPrimary }]}>12 Days</Text>
               </View>
             </View>
           </View>
@@ -68,17 +70,17 @@ export default function LandingScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>Trending Quizzes</Text>
-              <Text style={styles.sectionSubtitle}>Jump into what everyone is learning right now.</Text>
+              <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Trending Quizzes</Text>
+              <Text style={[styles.sectionSubtitle, { color: C.textMuted }]}>Jump into what everyone is learning right now.</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Explore')}>
-              <Text style={styles.viewAll}>View all →</Text>
+              <Text style={[styles.viewAll, { color: C.primary }]}>View all →</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.trendingGrid}>
             {/* Large card left */}
-            <TouchableOpacity style={styles.trendingCardLarge} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.88}>
+            <TouchableOpacity style={[styles.trendingCardLarge, { backgroundColor: C.primary, shadowColor: C.primary }]} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.88}>
               <View style={styles.trendingBadge}>
                 <Text style={styles.trendingBadgeText}>MATHEMATICS</Text>
               </View>
@@ -93,7 +95,7 @@ export default function LandingScreen({ navigation }) {
 
             {/* Right column */}
             <View style={styles.trendingRight}>
-              <TouchableOpacity style={styles.trendingCardGreen} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.88}>
+              <TouchableOpacity style={[styles.trendingCardGreen, { backgroundColor: '#059669', shadowColor: '#059669' }]} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.88}>
                 <View style={styles.trendingBadgeGreen}>
                   <Text style={styles.trendingBadgeTextGreen}>SCIENCE</Text>
                 </View>
@@ -102,15 +104,15 @@ export default function LandingScreen({ navigation }) {
               </TouchableOpacity>
 
               <View style={styles.trendingSmallRow}>
-                <TouchableOpacity style={styles.trendingCardSmall} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.85}>
+                <TouchableOpacity style={[styles.trendingCardSmall, { backgroundColor: C.bgCard, borderColor: C.border }]} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.85}>
                   <Text style={styles.trendingSmallIcon}>🗺️</Text>
-                  <Text style={styles.trendingSmallTitle}>Modern Wars</Text>
-                  <Text style={styles.trendingSmallMeta}>320 Students</Text>
+                  <Text style={[styles.trendingSmallTitle, { color: C.textPrimary }]}>Modern Wars</Text>
+                  <Text style={[styles.trendingSmallMeta, { color: C.textMuted }]}>320 Students</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.trendingCardSmall} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.85}>
+                <TouchableOpacity style={[styles.trendingCardSmall, { backgroundColor: C.bgCard, borderColor: C.border }]} onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })} activeOpacity={0.85}>
                   <Text style={styles.trendingSmallIcon}>🌍</Text>
-                  <Text style={styles.trendingSmallTitle}>World Map</Text>
-                  <Text style={styles.trendingSmallMeta}>890 Students</Text>
+                  <Text style={[styles.trendingSmallTitle, { color: C.textPrimary }]}>World Map</Text>
+                  <Text style={[styles.trendingSmallMeta, { color: C.textMuted }]}>890 Students</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -120,21 +122,21 @@ export default function LandingScreen({ navigation }) {
         {/* Features */}
         <View style={styles.featuresRow}>
           {FEATURES.map((f) => (
-            <View key={f.id} style={styles.featureCard}>
+            <View key={f.id} style={[styles.featureCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
               <Text style={styles.featureIcon}>{f.icon}</Text>
-              <Text style={styles.featureTitle}>{f.title}</Text>
-              <Text style={styles.featureDesc}>{f.desc}</Text>
+              <Text style={[styles.featureTitle, { color: C.textPrimary }]}>{f.title}</Text>
+              <Text style={[styles.featureDesc, { color: C.textMuted }]}>{f.desc}</Text>
             </View>
           ))}
         </View>
 
         {/* CTA Banner */}
-        <View style={styles.ctaBanner}>
+        <View style={[styles.ctaBanner, { backgroundColor: C.primary, shadowColor: C.primary }]}>
           <Text style={styles.ctaTitle}>Ready to crush your next test?</Text>
           <Text style={styles.ctaSubtitle}>Stop studying alone. Join the QuizMates community and start leveling up your knowledge through play.</Text>
           <View style={styles.ctaButtons}>
             <TouchableOpacity style={styles.ctaBtnWhite} onPress={() => navigation.navigate('Register')} activeOpacity={0.88}>
-              <Text style={styles.ctaBtnWhiteText}>Get Started Free</Text>
+              <Text style={[styles.ctaBtnWhiteText, { color: C.primary }]}>Get Started Free</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.ctaBtnOutline} onPress={() => navigation.navigate('Explore')} activeOpacity={0.88}>
               <Text style={styles.ctaBtnOutlineText}>Explore Topics</Text>
@@ -143,13 +145,19 @@ export default function LandingScreen({ navigation }) {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerLogo}>QuizMates</Text>
-          <Text style={styles.footerCopy}>© 2024 QuizMates. Keeplearning!</Text>
+        <View style={[styles.footer, { borderTopColor: C.border }]}>
+          <Text style={[styles.footerLogo, { color: C.primary }]}>QuizMates</Text>
+          <Text style={[styles.footerCopy, { color: C.textMuted }]}>© 2024 QuizMates. Keep learning!</Text>
           <View style={styles.footerLinks}>
-            <Text style={styles.footerLink}>Privacy Policy</Text>
-            <Text style={styles.footerLink}>Terms of Service</Text>
-            <Text style={styles.footerLink}>Help Center</Text>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Terms of Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Help Center</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -159,7 +167,7 @@ export default function LandingScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgApp },
+  container: { flex: 1 },
   scroll: { paddingBottom: 40 },
 
   // Hero
@@ -169,29 +177,25 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 40,
     gap: 20,
-    backgroundColor: Colors.bgCard,
   },
   heroLeft: { flex: 1 },
   heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.accentLight,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
     marginBottom: 16,
   },
-  heroBadgeText: { fontSize: 12, fontWeight: '700', color: Colors.accent },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: Colors.textPrimary, lineHeight: 34, marginBottom: 12 },
-  heroTitlePurple: { color: Colors.primary },
-  heroSubtitle: { fontSize: 13, color: Colors.textMuted, lineHeight: 19, marginBottom: 20 },
+  heroBadgeText: { fontSize: 12, fontWeight: '700' },
+  heroTitle: { fontSize: 26, fontWeight: '900', lineHeight: 34, marginBottom: 12 },
+  heroTitlePurple: { },
+  heroSubtitle: { fontSize: 13, lineHeight: 19, marginBottom: 20 },
   heroActions: { flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap' },
   playBtn: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
     elevation: 3,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -201,26 +205,23 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bgApp,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
     gap: 6,
   },
   searchIcon: { fontSize: 14 },
-  searchPlaceholder: { fontSize: 12, color: Colors.textMuted },
+  searchPlaceholder: { fontSize: 12 },
   friendsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   friendsAvatars: { fontSize: 18 },
-  friendsText: { fontSize: 12, color: Colors.textMuted },
+  friendsText: { fontSize: 12 },
 
   heroRight: { width: 120, alignItems: 'center' },
   heroImage: {
     width: 110,
     height: 140,
     borderRadius: 16,
-    backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -229,12 +230,10 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bgCard,
     borderRadius: 10,
     padding: 8,
     gap: 6,
     borderWidth: 1,
-    borderColor: Colors.border,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -242,8 +241,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   streakIcon: { fontSize: 16 },
-  streakLabel: { fontSize: 9, color: Colors.textMuted, fontWeight: '600' },
-  streakValue: { fontSize: 12, fontWeight: '800', color: Colors.textPrimary },
+  streakLabel: { fontSize: 9, fontWeight: '600' },
+  streakValue: { fontSize: 12, fontWeight: '800' },
 
   // Section
   section: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24 },
@@ -253,21 +252,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '900', color: Colors.textPrimary },
-  sectionSubtitle: { fontSize: 12, color: Colors.textMuted, marginTop: 3 },
-  viewAll: { fontSize: 13, color: Colors.primary, fontWeight: '700' },
+  sectionTitle: { fontSize: 18, fontWeight: '900' },
+  sectionSubtitle: { fontSize: 12, marginTop: 3 },
+  viewAll: { fontSize: 13, fontWeight: '700' },
 
   // Trending grid
   trendingGrid: { flexDirection: 'row', gap: 12 },
   trendingCardLarge: {
     flex: 1,
-    backgroundColor: Colors.primary,
     borderRadius: 16,
     padding: 18,
     justifyContent: 'space-between',
     minHeight: 180,
     elevation: 4,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -293,11 +290,9 @@ const styles = StyleSheet.create({
 
   trendingRight: { flex: 1, gap: 10 },
   trendingCardGreen: {
-    backgroundColor: '#059669',
     borderRadius: 14,
     padding: 14,
     elevation: 3,
-    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -317,11 +312,9 @@ const styles = StyleSheet.create({
   trendingSmallRow: { flexDirection: 'row', gap: 8 },
   trendingCardSmall: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -329,8 +322,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   trendingSmallIcon: { fontSize: 20, marginBottom: 4 },
-  trendingSmallTitle: { fontSize: 12, fontWeight: '700', color: Colors.textPrimary, marginBottom: 2 },
-  trendingSmallMeta: { fontSize: 10, color: Colors.textMuted },
+  trendingSmallTitle: { fontSize: 12, fontWeight: '700', marginBottom: 2 },
+  trendingSmallMeta: { fontSize: 10 },
 
   // Features
   featuresRow: {
@@ -341,11 +334,9 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -353,19 +344,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   featureIcon: { fontSize: 28, marginBottom: 10 },
-  featureTitle: { fontSize: 13, fontWeight: '800', color: Colors.textPrimary, marginBottom: 6 },
-  featureDesc: { fontSize: 11, color: Colors.textMuted, lineHeight: 16 },
+  featureTitle: { fontSize: 13, fontWeight: '800', marginBottom: 6 },
+  featureDesc: { fontSize: 11, lineHeight: 16 },
 
   // CTA Banner
   ctaBanner: {
     marginHorizontal: 20,
-    backgroundColor: Colors.primary,
     borderRadius: 20,
     padding: 28,
     alignItems: 'center',
     marginBottom: 32,
     elevation: 4,
-    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -379,7 +368,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
-  ctaBtnWhiteText: { color: Colors.primary, fontWeight: '800', fontSize: 14 },
+  ctaBtnWhiteText: { fontWeight: '800', fontSize: 14 },
   ctaBtnOutline: {
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.6)',
@@ -394,12 +383,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     alignItems: 'center',
     gap: 6,
   },
-  footerLogo: { fontSize: 16, fontWeight: '900', color: Colors.primary },
-  footerCopy: { fontSize: 11, color: Colors.textMuted },
+  footerLogo: { fontSize: 16, fontWeight: '900' },
+  footerCopy: { fontSize: 11 },
   footerLinks: { flexDirection: 'row', gap: 16, marginTop: 4 },
-  footerLink: { fontSize: 11, color: Colors.textMuted, fontWeight: '600' },
+  footerLink: { fontSize: 11, fontWeight: '600' },
 });

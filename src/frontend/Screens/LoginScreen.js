@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
-import { Colors } from '../Styles/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 export default function LoginScreen({ navigation }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const { isDark, theme: C } = useTheme();
 
     const handleLogin = async () => {
         if (!username || !password) {
@@ -60,14 +61,14 @@ export default function LoginScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: C.bgApp }]}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-            <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
+            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
                 {/* Header tím */}
-                <View style={styles.header}>
+                <View style={[styles.header, { backgroundColor: C.primary }]}>
                     <View style={styles.logoCircle}>
                         <Text style={styles.logoEmoji}>🎮</Text>
                     </View>
@@ -76,15 +77,15 @@ export default function LoginScreen({ navigation }) {
                 </View>
 
                 {/* Form card */}
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Đăng nhập</Text>
+                <View style={[styles.card, { backgroundColor: C.bgCard, shadowColor: C.shadow }]}>
+                    <Text style={[styles.cardTitle, { color: C.textPrimary }]}>Đăng nhập</Text>
 
                     <View style={styles.inputWrapper}>
-                        <Text style={styles.inputLabel}>Tên đăng nhập</Text>
+                        <Text style={[styles.inputLabel, { color: C.textMuted }]}>Tên đăng nhập</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { backgroundColor: C.bgApp, color: C.textPrimary, borderColor: C.border }]}
                             placeholder="Nhập username..."
-                            placeholderTextColor={Colors.textMuted}
+                            placeholderTextColor={C.textMuted}
                             value={username}
                             onChangeText={setUsername}
                             autoCapitalize="none"
@@ -92,11 +93,11 @@ export default function LoginScreen({ navigation }) {
                     </View>
 
                     <View style={styles.inputWrapper}>
-                        <Text style={styles.inputLabel}>Mật khẩu</Text>
+                        <Text style={[styles.inputLabel, { color: C.textMuted }]}>Mật khẩu</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { backgroundColor: C.bgApp, color: C.textPrimary, borderColor: C.border }]}
                             placeholder="Nhập mật khẩu..."
-                            placeholderTextColor={Colors.textMuted}
+                            placeholderTextColor={C.textMuted}
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
@@ -104,7 +105,7 @@ export default function LoginScreen({ navigation }) {
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                        style={[styles.btnPrimary, { backgroundColor: C.primary, shadowColor: C.primary }, loading && styles.btnDisabled]}
                         onPress={handleLogin}
                         disabled={loading}
                         activeOpacity={0.85}
@@ -116,26 +117,26 @@ export default function LoginScreen({ navigation }) {
 
                     {/* Divider */}
                     <View style={styles.dividerRow}>
-                        <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>hoặc</Text>
-                        <View style={styles.dividerLine} />
+                        <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
+                        <Text style={[styles.dividerText, { color: C.textMuted }]}>hoặc</Text>
+                        <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
                     </View>
 
                     {/* Nút khách */}
                     <TouchableOpacity
-                        style={styles.btnGuest}
+                        style={[styles.btnGuest, { backgroundColor: C.bgApp, borderColor: C.border }]}
                         onPress={handleGuestLogin}
                         activeOpacity={0.85}
                     >
-                        <Text style={styles.btnGuestText}>👤 Chơi với tư cách Khách</Text>
+                        <Text style={[styles.btnGuestText, { color: C.textPrimary }]}>👤 Chơi với tư cách Khách</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={styles.linkRow}
                         onPress={() => navigation.navigate('Register')}
                     >
-                        <Text style={styles.linkText}>Chưa có tài khoản? </Text>
-                        <Text style={styles.linkHighlight}>Đăng ký ngay</Text>
+                        <Text style={[styles.linkText, { color: C.textMuted }]}>Chưa có tài khoản? </Text>
+                        <Text style={[styles.linkHighlight, { color: C.primary }]}>Đăng ký ngay</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -147,7 +148,6 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.bgApp,
     },
     scroll: {
         flexGrow: 1,
@@ -155,7 +155,6 @@ const styles = StyleSheet.create({
 
     // Header tím bo góc dưới
     header: {
-        backgroundColor: Colors.primary,
         paddingTop: 60,
         paddingBottom: 48,
         alignItems: 'center',
@@ -172,54 +171,49 @@ const styles = StyleSheet.create({
     logoEmoji: { fontSize: 38 },
     appName: {
         fontSize: 32, fontWeight: '900',
-        color: Colors.white, letterSpacing: 1,
+        color: '#FFFFFF', letterSpacing: 1,
     },
     tagline: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
 
     // Card form
     card: {
-        backgroundColor: Colors.bgCard,
         borderRadius: 24, padding: 28,
         margin: 20, marginTop: -24,
         elevation: 8,
-        shadowColor: Colors.shadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15, shadowRadius: 12,
     },
     cardTitle: {
         fontSize: 22, fontWeight: '800',
-        color: Colors.textPrimary, marginBottom: 24, textAlign: 'center',
+        marginBottom: 24, textAlign: 'center',
     },
     inputWrapper: { marginBottom: 16 },
     inputLabel: {
-        fontSize: 13, fontWeight: '700', color: Colors.textMuted,
+        fontSize: 13, fontWeight: '700',
         marginBottom: 8, letterSpacing: 0.3,
     },
     input: {
-        backgroundColor: Colors.bgApp,
         borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-        fontSize: 15, color: Colors.textPrimary,
-        borderWidth: 1.5, borderColor: Colors.border,
+        fontSize: 15,
+        borderWidth: 1.5,
     },
     btnPrimary: {
-        backgroundColor: Colors.primary,
         borderRadius: 14, paddingVertical: 16,
         alignItems: 'center', marginTop: 8,
         elevation: 4,
-        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4, shadowRadius: 8,
     },
     btnDisabled: { opacity: 0.6 },
     btnPrimaryText: {
-        color: Colors.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.5,
+        color: '#FFFFFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.5,
     },
     linkRow: {
         flexDirection: 'row', justifyContent: 'center',
         marginTop: 20, alignItems: 'center',
     },
-    linkText: { color: Colors.textMuted, fontSize: 14 },
-    linkHighlight: { color: Colors.primary, fontSize: 14, fontWeight: '700' },
+    linkText: { fontSize: 14 },
+    linkHighlight: { fontSize: 14, fontWeight: '700' },
 
     // Divider
     dividerRow: {
@@ -227,21 +221,20 @@ const styles = StyleSheet.create({
         marginVertical: 20, gap: 10,
     },
     dividerLine: {
-        flex: 1, height: 1, backgroundColor: Colors.border,
+        flex: 1, height: 1,
     },
     dividerText: {
-        color: Colors.textMuted, fontSize: 13, fontWeight: '500',
+        fontSize: 13, fontWeight: '500',
     },
 
     // Nút khách
     btnGuest: {
-        backgroundColor: Colors.bgApp,
         borderRadius: 14, paddingVertical: 15,
         alignItems: 'center',
-        borderWidth: 1.5, borderColor: Colors.border,
+        borderWidth: 1.5,
         marginBottom: 4,
     },
     btnGuestText: {
-        color: Colors.textPrimary, fontSize: 15, fontWeight: '700',
+        fontSize: 15, fontWeight: '700',
     },
 });

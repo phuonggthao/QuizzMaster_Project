@@ -1,19 +1,34 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors } from '../Styles/Colors';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
-export default function AppHeader({ navigation, activeTab }) {
+export default function AppHeader({ navigation, activeTab, hideBack = false }) {
+  const { theme: C } = useTheme();
+  const canGoBack = !hideBack && navigation.canGoBack();
   const tabs = [
     { key: 'Play',      label: 'Play',       route: 'Home' },
     { key: 'Explore',   label: 'Explore',    route: 'Explore' },
+    { key: 'Manage',    label: 'Manage',     route: 'Manage' },
+    { key: 'Report',    label: 'Report',     route: 'Report' },
     { key: 'Profile',   label: 'My Profile', route: 'Profile' },
   ];
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: C.bgCard, borderBottomColor: C.border }]}>
+      {/* Nút back (hiển thị khi có thể quay lại) */}
+      {canGoBack && (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          style={[styles.backBtn, { backgroundColor: C.bgApp, borderColor: C.border }]}
+        >
+          <Text style={[styles.backBtnText, { color: C.primary }]}>←</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Logo */}
       <TouchableOpacity onPress={() => navigation.navigate('Landing')} activeOpacity={0.8}>
-        <Text style={styles.logo}>QuizMates</Text>
+        <Text style={[styles.logo, { color: C.primary }]}>QuizMates</Text>
       </TouchableOpacity>
 
       {/* Nav links */}
@@ -27,10 +42,14 @@ export default function AppHeader({ navigation, activeTab }) {
               activeOpacity={0.7}
               style={styles.navItem}
             >
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+              <Text style={[
+                styles.navLabel,
+                { color: isActive ? C.primary : C.textMuted },
+                isActive && styles.navLabelActive
+              ]}>
                 {tab.label}
               </Text>
-              {isActive && <View style={styles.navUnderline} />}
+              {isActive && <View style={[styles.navUnderline, { backgroundColor: C.primary }]} />}
             </TouchableOpacity>
           );
         })}
@@ -38,10 +57,18 @@ export default function AppHeader({ navigation, activeTab }) {
 
       {/* Right icons */}
       <View style={styles.rightIcons}>
-        <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.iconBtn, { backgroundColor: C.bgApp, borderColor: C.border }]}
+          activeOpacity={0.7}
+          onPress={() => Alert.alert('Thông báo', 'Thông báo đang được phát triển')}
+        >
           <Text style={styles.iconText}>🔔</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.iconBtn, { backgroundColor: C.bgApp, borderColor: C.border }]}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('PowerUps')}
+        >
           <Text style={styles.iconText}>⚙️</Text>
         </TouchableOpacity>
       </View>
@@ -53,17 +80,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bgCard,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   logo: {
     fontSize: 20,
     fontWeight: '900',
-    color: Colors.primary,
     marginRight: 32,
+  },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  backBtnText: {
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 20,
   },
   navLinks: {
     flex: 1,
@@ -77,10 +115,8 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textMuted,
   },
   navLabelActive: {
-    color: Colors.primary,
     fontWeight: '700',
   },
   navUnderline: {
@@ -89,7 +125,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: Colors.primary,
     borderRadius: 1,
   },
   rightIcons: {
@@ -100,11 +135,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.bgApp,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   iconText: { fontSize: 16 },
 });

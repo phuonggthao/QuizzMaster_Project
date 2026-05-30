@@ -1,4 +1,4 @@
-export const Colors = {
+export const LightColors = {
   bgApp:        '#F0F2FF',
   bgCard:       '#FFFFFF',
   primary:      '#6C2BD9',
@@ -21,3 +21,30 @@ export const Colors = {
   optionD:      '#EDE9FF',
   shadow:       '#6C2BD9',
 };
+
+export const DarkColors = {
+  bgApp:        '#0F0F1A',
+  bgCard:       '#1C1C2E',
+  primary:      '#8B5CF6',
+  primaryDark:  '#7C3AED',
+  primaryLight: '#2D1B69',
+  accent:       '#22C55E',
+  accentLight:  '#14532D',
+  textPrimary:  '#F9FAFB',
+  textSecondary:'#D1D5DB',
+  textMuted:    '#9CA3AF',
+  border:       '#2D2D44',
+  borderLight:  '#1F1F35',
+  white:        '#FFFFFF',
+  correct:      '#22C55E',
+  wrong:        '#EF4444',
+  warning:      '#F59E0B',
+  optionA:      '#2D1B69',
+  optionB:      '#2D1B69',
+  optionC:      '#2D1B69',
+  optionD:      '#2D1B69',
+  shadow:       '#8B5CF6',
+};
+
+// Giữ lại export Colors để tương thích ngược (mặc định light)
+export const Colors = LightColors;

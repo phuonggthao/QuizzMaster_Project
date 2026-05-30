@@ -1,43 +1,101 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ActivityIndicator, StyleSheet,
-  TouchableOpacity, TextInput, Alert,
-  SafeAreaView, StatusBar, ScrollView,
+  TouchableOpacity, Alert,
+  SafeAreaView, StatusBar, ScrollView, Platform
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BASE_URL from '../config';
 import { useQuiz } from '../Hooks/useQuiz';
-import { Colors } from '../Styles/Colors';
+import { useTheme } from '../context/ThemeContext';
 
-const OPTION_LABELS = ['A', 'B', 'C', 'D'];
+import QuizGame from './games/QuizGame';
+import TrueFalseGame from './games/TrueFalseGame';
+import FlashcardGame from './games/FlashcardGame';
+import WordScrambleGame from './games/WordScrambleGame';
+import FillInBlankGame from './games/FillInBlankGame';
 
 export default function QuizScreen({ route, navigation }) {
   const { gameType } = route.params || { gameType: 'Quiz' };
   const { questions, loading, error, fetchQuestions } = useQuiz(gameType);
+  const { isDark, theme: C } = useTheme();
 
+  // ── State chung ─────────────────────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [score, setScore] = useState(1250);
-  const [combo, setCombo] = useState(3);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [isCorrectThisTurn, setIsCorrectThisTurn] = useState(false);
+  const [isTimeOut, setIsTimeOut] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [isFlipped, setIsFlipped] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [timeLeft, setTimeLeft] = useState(39);
   const timerRef = useRef(null);
 
+  // Refs để onNext luôn đọc được giá trị mới nhất (tránh stale closure)
+  const scoreRef = useRef(0);
+  const correctCountRef = useRef(0);
+  useEffect(() => { scoreRef.current = score; }, [score]);
+  useEffect(() => { correctCountRef.current = correctCount; }, [correctCount]);
+
+  // ── Power-up state ───────────────────────────────────────────────────────────
+  const [doublePoints, setDoublePoints] = useState(false);
+  const [powerUpCount, setPowerUpCount] = useState(2);
+  const [frozen, setFrozen] = useState(false);
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
   useEffect(() => {
     fetchQuestions();
     return () => clearInterval(timerRef.current);
   }, []);
 
   useEffect(() => {
-    if (questions.length > 0 && !loading) {
-      setTimeLeft(39);
-      // Chỉ reset timer — state đã được reset trong nextQuestion()
-      // Lần đầu load (currentIndex === 0) thì reset đầy đủ
-      if (currentIndex === 0) {
-        setAnswered(false);
-        setSelectedAnswer(null);
-      }
-      if (timerRef.current) clearInterval(timerRef.current);
+    if (questions.length === 0 || loading) return;
+    setTimeLeft(39);
+    if (currentIndex === 0) {
+      setAnswered(false);
+      setSelectedAnswer(null);
+    }
+    // LuckyNumber không cần timer
+    if (gameType === 'LuckyNumber') return;
+    if (timerRef.current) clearInterval(timerRef.current); timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          handleTimeOut();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [currentIndex, questions, loading]);
+
+  // ── Hết giờ ──────────────────────────────────────────────────────────────────
+  const handleTimeOut = () => {
+    if (answered) return;
+    setAnswered(true);
+    setIsTimeOut(true);
+    setIsCorrectThisTurn(false);
+    setCombo(0);
+  };
+
+  // ── Power-ups ────────────────────────────────────────────────────────────────
+  const handleDoublePoints = () => {
+    if (answered || powerUpCount <= 0) return;
+    setDoublePoints(true);
+    setPowerUpCount((prev) => prev - 1);
+    Alert.alert('⚡ Nhân đôi điểm!', 'Câu tiếp theo sẽ được tính 20 điểm nếu đúng!');
+  };
+
+  const handleFreeze = () => {
+    if (answered || frozen) return;
+    setFrozen(true);
+    clearInterval(timerRef.current);
+    Alert.alert('❄ Đóng băng!', 'Đồng hồ dừng trong 5 giây!');
+    setTimeout(() => {
+      setFrozen(false);
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -48,251 +106,237 @@ export default function QuizScreen({ route, navigation }) {
           return prev - 1;
         });
       }, 1000);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [currentIndex, questions, loading]);
-
-  const handleTimeOut = () => {
-    if (answered) return;
-    setAnswered(true);
-    setCombo(0);
-    setTimeout(() => {
-      Alert.alert('⏳ Time Up!', `Correct answer: ${questions[currentIndex]?.correctAnswer}`, [
-        { text: 'Continue', onPress: () => nextQuestion(score) },
-      ]);
-    }, 300);
+    }, 5000);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading questions...</Text>
-      </View>
-    );
-  }
+  const handleSkip = () => {
+    if (answered) return;
+    clearInterval(timerRef.current);
+    nextQuestion(score, correctCount);
+  };
 
-  if (error || questions.length === 0) {
-    return (
-      <View style={styles.center}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
-        <Text style={styles.errorEmoji}>😕</Text>
-        <Text style={styles.errorText}>{error || `No questions for [${gameType}]`}</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
-          <Text style={styles.backBtnText}>← Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const currentQuestion = questions[currentIndex];
-  const totalQuestions = questions.length;
-  const progress = (currentIndex + 1) / totalQuestions;
-  const timerColor = timeLeft <= 5 ? Colors.wrong : timeLeft <= 10 ? Colors.warning : Colors.accent;
-  const timerBg = timeLeft <= 5 ? '#FEE2E2' : timeLeft <= 10 ? '#FEF3C7' : Colors.accentLight;
-
+  // ── Xử lý đáp án ─────────────────────────────────────────────────────────────
+  /**
+   * Kiểm tra đáp án đúng/sai theo từng loại game.
+   * Các game dùng textInput (FillInBlank, WordScramble, LuckyNumber) truyền
+   * userAnswer = textInput từ state; các game còn lại truyền giá trị đã chọn.
+   */
   const handleAnswer = (userAnswer) => {
     if (answered) return;
     if (timerRef.current) clearInterval(timerRef.current);
     setAnswered(true);
     setSelectedAnswer(userAnswer);
 
+    const normalizeTF = (val) => {
+      const s = String(val).trim().toLowerCase();
+      if (s === 'đúng' || s === 'true' || s === 'yes' || s === 'y' || s === '1' || s === 'đ') return 'true';
+      if (s === 'sai' || s === 'false' || s === 'no' || s === 'n' || s === '0' || s === 's') return 'false';
+      return s;
+    };
+
+    const correct = String(currentQuestion.correctAnswer).trim().toLowerCase();
+    const given = String(userAnswer ?? textInput).trim().toLowerCase();
+
     let isCorrect = false;
-    if (gameType === 'Quiz' || gameType === 'TrueFalse') {
-      isCorrect =
-        String(userAnswer).trim().toLowerCase() ===
-        String(currentQuestion.correctAnswer).trim().toLowerCase();
-    } else if (gameType === 'FillInBlank' || gameType === 'WordScramble') {
-      isCorrect =
-        String(textInput).trim().toLowerCase() ===
-        String(currentQuestion.correctAnswer).trim().toLowerCase();
+    if (gameType === 'TrueFalse') {
+      isCorrect = normalizeTF(given) === normalizeTF(correct);
     } else {
-      isCorrect = true;
+      isCorrect = given === correct;
     }
 
+    setIsCorrectThisTurn(isCorrect);
+
+    const newCorrectCount = isCorrect ? correctCount + 1 : correctCount;
     const newCombo = isCorrect ? combo + 1 : 0;
     const bonus = newCombo >= 3 ? 5 : 0;
-    const newScore = isCorrect ? score + 10 + bonus : score;
+    const basePoints = doublePoints ? 20 : 10;
+    const newScore = isCorrect ? score + basePoints + bonus : score;
+
+    setDoublePoints(false);
+
     if (isCorrect) {
       setScore(newScore);
       setCombo(newCombo);
+      setCorrectCount(newCorrectCount);
     } else {
       setCombo(0);
     }
-
-    setTimeout(() => {
-      if (isCorrect) {
-        const msg = bonus > 0 ? `+10 pts  🔥 Combo x${newCombo} (+${bonus} bonus)` : '+10 pts';
-        Alert.alert('🎉 Correct!', msg, [
-          { text: 'Next →', onPress: () => nextQuestion(newScore) },
-        ]);
-      } else {
-        Alert.alert('❌ Wrong!', `Correct answer: ${currentQuestion.correctAnswer}`, [
-          { text: 'Next →', onPress: () => nextQuestion(score) },
-        ]);
-      }
-    }, 400);
   };
 
-  const nextQuestion = (currentScore) => {
-    // Reset state TRƯỚC khi chuyển câu — tránh câu mới bị lock do answered = true
+  // Shortcut cho các game dùng textInput
+  const handleTextAnswer = () => handleAnswer(textInput);
+
+  // ── Câu tiếp theo / kết thúc ─────────────────────────────────────────────────
+  const nextQuestion = async (currentScore, finalCorrectCount) => {
     setAnswered(false);
     setSelectedAnswer(null);
     setTextInput('');
-    setIsFlipped(false);
+    setIsTimeOut(false);
+    setIsCorrectThisTurn(false);
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        const userId = await AsyncStorage.getItem('userId');
+        await fetch(`${BASE_URL}/game/game-over`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && token !== 'GUEST' ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            userId: token === 'GUEST' ? null : userId,
+            gameType,
+            correctAnswersCount: finalCorrectCount,
+          }),
+        });
+      } catch (err) {
+        console.warn('Lỗi lưu kết quả game:', err.message);
+      }
       navigation.navigate('Leaderboard', { score: currentScore, total: questions.length });
     }
   };
 
-  const getOptionStyle = (item) => {
-    if (!answered) return styles.optionBtn;
-    const isCorrectOpt =
-      String(item).trim().toLowerCase() ===
-      String(currentQuestion.correctAnswer).trim().toLowerCase();
-    if (isCorrectOpt) return [styles.optionBtn, styles.optionCorrect];
-    if (item === selectedAnswer) return [styles.optionBtn, styles.optionWrong];
-    return [styles.optionBtn, styles.optionDimmed];
-  };
-
-  const getOptionLabelStyle = (item) => {
-    if (!answered) return styles.optionLabel;
-    const isCorrectOpt =
-      String(item).trim().toLowerCase() ===
-      String(currentQuestion.correctAnswer).trim().toLowerCase();
-    if (isCorrectOpt) return [styles.optionLabel, { backgroundColor: Colors.correct }];
-    if (item === selectedAnswer) return [styles.optionLabel, { backgroundColor: Colors.wrong }];
-    return styles.optionLabel;
-  };
-
-  const renderQuizUI = () => {
-    const options = currentQuestion.options || [];
-    // Render 2x2 grid
-    const rows = [options.slice(0, 2), options.slice(2, 4)];
+  // ── Loading / Error ───────────────────────────────────────────────────────────
+  if (loading) {
     return (
-      <View style={styles.answerGrid}>
-        {rows.map((row, rowIdx) => (
-          <View key={rowIdx} style={styles.answerRow}>
-            {row.map((item, colIdx) => {
-              const idx = rowIdx * 2 + colIdx;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={getOptionStyle(item)}
-                  onPress={() => handleAnswer(item)}
-                  activeOpacity={0.85}
-                  disabled={answered}
-                >
-                  <View style={getOptionLabelStyle(item)}>
-                    <Text style={styles.optionLabelText}>{OPTION_LABELS[idx]}</Text>
-                  </View>
-                  <Text style={styles.optionText} numberOfLines={2}>{item}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ))}
+      <View style={[styles.center, { backgroundColor: C.bgApp }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
+        <ActivityIndicator size="large" color={C.primary} />
+        <Text style={[styles.loadingText, { color: C.textMuted }]}>Loading questions...</Text>
       </View>
     );
-  };
+  }
 
-  const renderFlashcard = () => (
-    <View style={styles.answerGrid}>
-      <TouchableOpacity
-        style={[styles.flashcard, isFlipped && styles.flashcardFlipped]}
-        onPress={() => setIsFlipped(!isFlipped)}
-        activeOpacity={0.9}
-      >
-        <Text style={styles.flashcardLabel}>
-          {isFlipped ? '✅ ANSWER' : '❓ Tap to flip'}
+  if (error || questions.length === 0) {
+    return (
+      <View style={[styles.center, { backgroundColor: C.bgApp }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
+        <Text style={styles.errorEmoji}>😕</Text>
+        <Text style={[styles.errorText, { color: C.textPrimary }]}>
+          {error || `No questions for [${gameType}]`}
         </Text>
-        <Text style={styles.flashcardContent}>
-          {isFlipped ? currentQuestion.correctAnswer : currentQuestion.questionText}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.submitBtn}
-        onPress={() => handleAnswer(currentQuestion.correctAnswer)}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.submitBtnText}>✓ Got it — Next question</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: C.primary }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.backBtnText}>← Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-  const renderTextInput = (placeholder) => (
-    <View style={styles.answerGrid}>
-      <TextInput
-        style={styles.textInput}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.textMuted}
-        value={textInput}
-        onChangeText={setTextInput}
-      />
-      <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(textInput)} activeOpacity={0.85}>
-        <Text style={styles.submitBtnText}>Submit Answer →</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  // ── Dữ liệu câu hỏi hiện tại ─────────────────────────────────────────────────
+  const currentQuestion = questions[currentIndex];
+  const totalQuestions = questions.length;
+  const progress = (currentIndex + 1) / totalQuestions;
+  const timerColor = timeLeft <= 5 ? C.wrong : timeLeft <= 10 ? C.warning : C.accent;
+  const timerBg = timeLeft <= 5 ? '#FEE2E2' : timeLeft <= 10 ? '#FEF3C7' : C.accentLight;
+  const timerStr = `${String(Math.floor(timeLeft / 60)).padStart(2, '0')}:${String(timeLeft % 60).padStart(2, '0')}`;
 
+  // ── Render game component theo gameType ──────────────────────────────────────
   const renderGameUI = () => {
     switch (gameType) {
       case 'Quiz':
+        return (
+          <QuizGame
+            question={currentQuestion}
+            answered={answered}
+            selectedAnswer={selectedAnswer}
+            onAnswer={handleAnswer}
+          />
+        );
       case 'TrueFalse':
-        return renderQuizUI();
+        return (
+          <TrueFalseGame
+            question={currentQuestion}
+            answered={answered}
+            selectedAnswer={selectedAnswer}
+            onAnswer={handleAnswer}
+          />
+        );
       case 'Flashcard':
-        return renderFlashcard();
+        return (
+          <FlashcardGame
+            question={currentQuestion}
+            answered={answered}
+            onAnswer={handleAnswer}
+            onNext={() => nextQuestion(scoreRef.current, correctCountRef.current)}
+          />
+        );
       case 'WordScramble':
-        return renderTextInput('Type the correct word...');
+        return (
+          <WordScrambleGame
+            question={currentQuestion}
+            answered={answered}
+            textInput={textInput}
+            onChangeText={setTextInput}
+            onAnswer={handleTextAnswer}
+          />
+        );
+      case 'FillInBlank':
+        return (
+          <FillInBlankGame
+            question={currentQuestion}
+            answered={answered}
+            textInput={textInput}
+            onChangeText={setTextInput}
+            onAnswer={handleTextAnswer}
+          />
+        );
       default:
         return (
-          <View style={styles.answerGrid}>
-            <TouchableOpacity
-              style={styles.submitBtn}
-              onPress={() => handleAnswer(currentQuestion.correctAnswer)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.submitBtnText}>Continue →</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: C.primary }]}
+            onPress={() => handleAnswer(currentQuestion.correctAnswer)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.submitBtnText}>Continue →</Text>
+          </TouchableOpacity>
         );
     }
   };
 
-  const timerStr = `${String(Math.floor(timeLeft / 60)).padStart(2, '0')}:${String(timeLeft % 60).padStart(2, '0')}`;
-
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
+    <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
 
       {/* ── Sub-header ── */}
-      <View style={styles.subHeader}>
-        {/* Progress info */}
+      <View style={[styles.subHeader, { backgroundColor: C.bgCard, borderBottomColor: C.border }]}>
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: C.bgApp, borderColor: C.border }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.backBtnText, { color: C.textMuted }]}>←</Text>
+        </TouchableOpacity>
         <View style={styles.progressInfo}>
-          <Text style={styles.questionCount}>Question {currentIndex + 1} of {totalQuestions}</Text>
-          <Text style={styles.progressPct}>{Math.round(progress * 100)}% Complete</Text>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+          <Text style={[styles.questionCount, { color: C.textPrimary }]}>
+            Question {currentIndex + 1} of {totalQuestions}
+          </Text>
+          <Text style={[styles.progressPct, { color: C.textMuted }]}>
+            {Math.round(progress * 100)}% Complete
+          </Text>
+          <View style={[styles.progressBarBg, { backgroundColor: C.borderLight }]}>
+            <View style={[styles.progressBarFill, { width: `${progress * 100}%`, backgroundColor: C.primary }]} />
           </View>
         </View>
-
-        {/* Timer */}
         <View style={[styles.timerBadge, { backgroundColor: timerBg }]}>
-          <Text style={[styles.timerText, { color: timerColor }]}>⏱ {timerStr}</Text>
+          <Text style={[styles.timerText, { color: timerColor }]}>
+            {frozen ? '❄ Frozen' : `⏱ ${timerStr}`}
+          </Text>
         </View>
-
-        {/* Score */}
         <View style={styles.scoreArea}>
-          <Text style={styles.scoreLabel}>CURRENT SCORE</Text>
-          <Text style={styles.scoreValue}>{score.toLocaleString()}</Text>
+          <Text style={[styles.scoreLabel, { color: C.textMuted }]}>CURRENT SCORE</Text>
+          <Text style={[styles.scoreValue, { color: C.primary }]}>{score.toLocaleString()}</Text>
           {combo >= 2 && (
-            <View style={styles.comboBadge}>
-              <Text style={styles.comboText}>🌿 {combo} Streak</Text>
+            <View style={[styles.comboBadge, { backgroundColor: C.accentLight }]}>
+              <Text style={[styles.comboText, { color: C.accent }]}>🌿 {combo} Streak</Text>
             </View>
           )}
         </View>
@@ -302,36 +346,67 @@ export default function QuizScreen({ route, navigation }) {
       <View style={styles.mainArea}>
         {/* Left: power-ups */}
         <View style={styles.powerUpsCol}>
-          <TouchableOpacity style={styles.powerBtn} activeOpacity={0.8}>
-            <Text style={styles.powerBtnText}>+1</Text>
-            <View style={styles.powerBadgeRed}>
-              <Text style={styles.powerBadgeRedText}>2</Text>
+          <TouchableOpacity
+            style={[
+              styles.powerBtn,
+              { backgroundColor: C.bgCard, borderColor: C.border },
+              (answered || powerUpCount <= 0) && styles.powerBtnDisabled,
+            ]}
+            onPress={handleDoublePoints}
+            activeOpacity={0.8}
+            disabled={answered || powerUpCount <= 0}
+          >
+            <Text style={[styles.powerBtnText, { color: C.primary }]}>+1</Text>
+            <View style={[styles.powerBadgeRed, { backgroundColor: C.wrong }]}>
+              <Text style={styles.powerBadgeRedText}>{powerUpCount}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.powerBtn} activeOpacity={0.8}>
+
+          <TouchableOpacity
+            style={[
+              styles.powerBtn,
+              { backgroundColor: C.bgCard, borderColor: C.border },
+              (answered || frozen) && styles.powerBtnDisabled,
+            ]}
+            onPress={handleFreeze}
+            activeOpacity={0.8}
+            disabled={answered || frozen}
+          >
             <Text style={styles.powerBtnIcon}>❄</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.powerBtn} activeOpacity={0.8}>
+
+          <TouchableOpacity
+            style={[
+              styles.powerBtn,
+              { backgroundColor: C.bgCard, borderColor: C.border },
+              answered && styles.powerBtnDisabled,
+            ]}
+            onPress={handleSkip}
+            activeOpacity={0.8}
+            disabled={answered}
+          >
             <Text style={styles.powerBtnIcon}>⏩</Text>
           </TouchableOpacity>
         </View>
 
         {/* Center: question card */}
         <View style={styles.questionCol}>
-          <View style={styles.questionCard}>
-            <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
-            <View style={styles.questionDivider} />
+          <View style={[styles.questionCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+            <Text style={[styles.questionText, { color: C.textPrimary }]}>
+              {currentQuestion.questionText}
+            </Text>
+            <View style={[styles.questionDivider, { backgroundColor: C.borderLight }]} />
           </View>
         </View>
 
         {/* Right: live players */}
         <View style={styles.liveCol}>
-          <View style={styles.liveAvatar}>
+          <View style={[styles.liveAvatar, { backgroundColor: C.primary }]}>
             <Text style={styles.liveAvatarText}>A</Text>
           </View>
-          <View style={styles.liveLine} />
+          <View style={[styles.liveLine, { backgroundColor: C.border }]} />
           <Text style={styles.liveIcon}>👥</Text>
-          <Text style={styles.liveCount}>128 Live</Text>
+          <Text style={[styles.liveCount, { color: C.textMuted }]}>128 Live</Text>
         </View>
       </View>
 
@@ -339,274 +414,177 @@ export default function QuizScreen({ route, navigation }) {
       <ScrollView
         style={styles.answerScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.answerScrollContent}
+        contentContainerStyle={[
+          styles.answerScrollContent,
+          answered && { paddingBottom: 100 },
+        ]}
       >
         {renderGameUI()}
       </ScrollView>
+
+      {/* ── Feedback Banner — ẩn với LuckyNumber và Flashcard (tự quản lý luồng) ── */}
+      {answered && gameType !== 'Flashcard' && (
+        <View
+          style={[
+            styles.feedbackBanner,
+            {
+              backgroundColor: isTimeOut ? '#FEF3C7' : isCorrectThisTurn ? '#F0FDF4' : '#FEF2F2',
+              borderTopColor: isTimeOut ? '#FDE68A' : isCorrectThisTurn ? '#DCFCE7' : '#FEE2E2',
+            },
+          ]}
+        >
+          <View style={styles.feedbackInfo}>
+            <Text
+              style={[
+                styles.feedbackTitle,
+                { color: isTimeOut ? '#B45309' : isCorrectThisTurn ? '#166534' : '#991B1B' },
+              ]}
+            >
+              {isTimeOut ? '⏳ Hết giờ!' : isCorrectThisTurn ? '🎉 Chính xác!' : '❌ Sai rồi!'}
+            </Text>
+            <Text
+              style={[
+                styles.feedbackDesc,
+                { color: isTimeOut ? '#D97706' : isCorrectThisTurn ? '#15803D' : '#B91C1C' },
+              ]}
+            >
+              {isTimeOut
+                ? `Đáp án đúng: ${currentQuestion.correctAnswer}`
+                : isCorrectThisTurn
+                  ? combo >= 3
+                    ? `+${doublePoints ? 20 : 10} điểm (🔥 Combo x${combo})`
+                    : `+${doublePoints ? 20 : 10} điểm`
+                  : `Đáp án đúng: ${currentQuestion.correctAnswer}`}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.feedbackBtn,
+              {
+                backgroundColor: isTimeOut
+                  ? '#F59E0B'
+                  : isCorrectThisTurn
+                    ? '#22C55E'
+                    : '#EF4444',
+              },
+            ]}
+            onPress={() => nextQuestion(score, correctCount)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.feedbackBtnText}>Tiếp tục →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgApp },
-  center: {
-    flex: 1, backgroundColor: Colors.bgApp,
-    justifyContent: 'center', alignItems: 'center', padding: 24,
-  },
-  loadingText: { color: Colors.textMuted, marginTop: 12, fontSize: 16 },
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  loadingText: { marginTop: 12, fontSize: 16 },
   errorEmoji: { fontSize: 52, marginBottom: 12 },
-  errorText: { color: Colors.textPrimary, fontSize: 16, textAlign: 'center', marginBottom: 20 },
+  errorText: { fontSize: 16, textAlign: 'center', marginBottom: 20 },
   backBtn: {
-    backgroundColor: Colors.primary, paddingHorizontal: 24,
-    paddingVertical: 12, borderRadius: 12,
-  },
-  backBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-
-  // Sub-header
-  subHeader: {
-    flexDirection: 'row',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.bgCard,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: 10,
+  },
+  backBtnText: { fontWeight: '700', fontSize: 16, lineHeight: 18 },
+
+  subHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, gap: 10,
   },
   progressInfo: { flex: 1 },
-  questionCount: { fontSize: 12, fontWeight: '800', color: Colors.textPrimary, marginBottom: 1 },
-  progressPct: { fontSize: 10, color: Colors.textMuted, marginBottom: 4 },
-  progressBarBg: {
-    height: 4,
-    backgroundColor: Colors.borderLight,
-    borderRadius: 2,
-  },
-  progressBarFill: {
-    height: 4,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  timerBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
+  questionCount: { fontSize: 12, fontWeight: '800', marginBottom: 1 },
+  progressPct: { fontSize: 10, marginBottom: 4 },
+  progressBarBg: { height: 4, borderRadius: 2 },
+  progressBarFill: { height: 4, borderRadius: 2 },
+  timerBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   timerText: { fontSize: 13, fontWeight: '800' },
   scoreArea: { alignItems: 'flex-end' },
-  scoreLabel: { fontSize: 9, color: Colors.textMuted, fontWeight: '700', letterSpacing: 0.8 },
-  scoreValue: { fontSize: 18, fontWeight: '900', color: Colors.primary },
-  comboBadge: {
-    backgroundColor: Colors.accentLight,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginTop: 2,
-  },
-  comboText: { fontSize: 9, fontWeight: '800', color: '#166534' },
+  scoreLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.8 },
+  scoreValue: { fontSize: 18, fontWeight: '900' },
+  comboBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginTop: 2 },
+  comboText: { fontSize: 9, fontWeight: '800' },
 
-  // Main 3-column
   mainArea: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    gap: 10,
-    alignItems: 'flex-start',
+    flexDirection: 'row', paddingHorizontal: 12,
+    paddingVertical: 14, gap: 10, alignItems: 'flex-start',
   },
-
-  // Power-ups column
-  powerUpsCol: {
-    width: 44,
-    gap: 8,
-    alignItems: 'center',
-  },
+  powerUpsCol: { width: 44, gap: 8, alignItems: 'center' },
   powerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: Colors.bgCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    width: 40, height: 40, borderRadius: 10, borderWidth: 1,
+    justifyContent: 'center', alignItems: 'center',
+    position: 'relative', elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 3,
   },
-  powerBtnText: { fontSize: 12, fontWeight: '900', color: Colors.primary },
+  powerBtnDisabled: { opacity: 0.4 },
+  powerBtnText: { fontSize: 12, fontWeight: '900' },
   powerBtnIcon: { fontSize: 16 },
   powerBadgeRed: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.wrong,
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute', top: -4, right: -4,
+    width: 16, height: 16, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center',
   },
   powerBadgeRedText: { color: '#fff', fontSize: 9, fontWeight: '900' },
 
-  // Question column
   questionCol: { flex: 1 },
   questionCard: {
-    backgroundColor: Colors.bgCard,
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 3,
-    shadowColor: '#000',
+    borderRadius: 18, padding: 18, borderWidth: 1,
+    elevation: 3, shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: 0.08, shadowRadius: 8,
   },
   questionText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 10,
+    fontSize: 15, fontWeight: '800',
+    textAlign: 'center', lineHeight: 22, marginBottom: 10,
   },
-  questionDivider: {
-    height: 2,
-    backgroundColor: Colors.borderLight,
-    borderRadius: 1,
-    marginTop: 4,
-  },
+  questionDivider: { height: 2, borderRadius: 1, marginTop: 4 },
 
-  // Live column
-  liveCol: {
-    width: 44,
-    alignItems: 'center',
-    gap: 4,
-  },
+  liveCol: { width: 44, alignItems: 'center', gap: 4 },
   liveAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center',
   },
   liveAvatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  liveLine: {
-    width: 2,
-    height: 20,
-    backgroundColor: Colors.border,
-    borderRadius: 1,
-  },
+  liveLine: { width: 2, height: 20, borderRadius: 1 },
   liveIcon: { fontSize: 16 },
-  liveCount: { fontSize: 9, fontWeight: '700', color: Colors.textMuted, textAlign: 'center' },
+  liveCount: { fontSize: 9, fontWeight: '700', textAlign: 'center' },
 
-  // Answer scroll
   answerScroll: { flex: 1 },
   answerScrollContent: { paddingHorizontal: 12, paddingBottom: 24 },
 
-  // Answer grid (2x2)
-  answerGrid: { gap: 8 },
-  answerRow: { flexDirection: 'row', gap: 8 },
-  optionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bgCard,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 12,
-    gap: 10,
-    minHeight: 56,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-  },
-  optionCorrect: {
-    borderColor: Colors.correct,
-    backgroundColor: '#F0FDF4',
-  },
-  optionWrong: {
-    borderColor: Colors.wrong,
-    backgroundColor: '#FEF2F2',
-  },
-  optionDimmed: { opacity: 0.45 },
-  optionLabel: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionLabelText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: Colors.primary,
-  },
-  optionText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-
-  // Flashcard
-  flashcard: {
-    backgroundColor: Colors.primary,
-    borderRadius: 18,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
-    marginBottom: 10,
-    elevation: 3,
-  },
-  flashcardFlipped: { backgroundColor: Colors.correct },
-  flashcardLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  flashcardContent: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#fff',
-    textAlign: 'center',
-  },
-
-  // Text input
-  textInput: {
-    backgroundColor: Colors.bgCard,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    marginBottom: 10,
-  },
-
-  // Submit button
   submitBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    elevation: 3, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3, shadowRadius: 6,
   },
   submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  feedbackBanner: {
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    bottom: 0, left: 0, right: 0,
+    zIndex: 9999,
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderTopWidth: 2, elevation: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1, shadowRadius: 6,
+  },
+  feedbackInfo: { flex: 1, marginRight: 12 },
+  feedbackTitle: { fontSize: 16, fontWeight: '900', marginBottom: 2 },
+  feedbackDesc: { fontSize: 13, fontWeight: '700' },
+  feedbackBtn: {
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+  },
+  feedbackBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 });

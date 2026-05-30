@@ -2,9 +2,11 @@ import express from 'express';
 import { connectDatabase } from './mongoClient.js';
 import { register, login, getMe } from '../backend/Controller/authController.js';
 import { getGameQuestions } from '../backend/Service/gameLogicService.js';
-import { processGameOver, getLeaderboard } from '../backend/Service/scoreService.js';
+import { processGameOver, getLeaderboard, getUserHistory, getReportStats } from '../backend/Service/scoreService.js';
 import { verifyToken, isAdmin } from '../backend/Middleware/authMiddleware.js';
-import { addQuestion } from '../backend/Service/questionService.js';
+import { addQuestion, getQuizList, getAllQuestions, deleteQuestion, getQuizzesByCategory, getAllCategories } from '../backend/Service/questionService.js';
+import User from '../backend/Model/User.js';
+import Score from '../backend/Model/Score.js';
 
 // ⚙️ KHỞI TẠO EXPRESS APP TRƯỚC TIÊN
 const app = express();
@@ -83,6 +85,94 @@ router.get('/game/leaderboard', async (req, res) => {
     try {
         const leaderboardData = await getLeaderboard();
         res.status(200).json(leaderboardData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ------------------------------------------
+// 👤 PROFILE — Lịch sử chơi & Thống kê cá nhân
+// ------------------------------------------
+router.get('/user/history', verifyToken, async (req, res) => {
+    try {
+        const history = await getUserHistory(req.user.id);
+        res.status(200).json(history);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/user/stats', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('fullName username highScore level tierName createdAt');
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+        const totalPlays = await Score.countDocuments({ userId: req.user.id });
+        const scores = await Score.find({ userId: req.user.id }).select('points');
+        const totalPoints = scores.reduce((sum, s) => sum + (s.points || 0), 0);
+        res.status(200).json({ user, totalPlays, totalPoints });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ------------------------------------------
+// 🔍 EXPLORE — Danh sách quiz & danh mục
+// ------------------------------------------
+router.get('/explore/quizzes', async (req, res) => {
+    try {
+        const quizList = await getQuizList();
+        res.status(200).json(quizList);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/explore/categories', async (req, res) => {
+    try {
+        const categories = await getAllCategories();
+        res.status(200).json(categories);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/explore/category/:category', async (req, res) => {
+    try {
+        const quizzes = await getQuizzesByCategory(req.params.category);
+        res.status(200).json(quizzes);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ------------------------------------------
+// ⚙️ MANAGE — Quản lý câu hỏi (Admin)
+// ------------------------------------------
+router.get('/manage/questions', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const questions = await getAllQuestions();
+        res.status(200).json(questions);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/manage/questions/:id', verifyToken, isAdmin, async (req, res) => {
+    try {
+        await deleteQuestion(req.params.id);
+        res.status(200).json({ message: 'Đã xóa câu hỏi thành công' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ------------------------------------------
+// 📊 REPORT — Thống kê báo cáo (Admin)
+// ------------------------------------------
+router.get('/report/stats', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const stats = await getReportStats();
+        res.status(200).json(stats);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

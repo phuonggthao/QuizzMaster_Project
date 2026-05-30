@@ -5,24 +5,27 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
-import { Colors } from '../Styles/Colors';
+import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
 
-const HISTORY = [
-  { id: '1', emoji: '🧬', bg: '#1E1B4B', title: 'Molecular Biology Fundamentals', time: 'Completed 2h ago', accuracy: '92% Accuracy', score: 850 },
-  { id: '2', emoji: '💻', bg: '#0C4A6E', title: 'Advanced JavaScript Patterns', time: 'Completed Yesterday', accuracy: '76% Accuracy', score: 620 },
-  { id: '3', emoji: '🏛️', bg: '#78350F', title: 'Ancient Civilizations: Rome & Greece', time: 'Completed 3 days ago', accuracy: '100% Accuracy', score: 1000 },
-];
+// Emoji game type
+const GAME_EMOJI = {
+  Quiz: '💻', TrueFalse: '🦆', Flashcard: '🎴',
+  WordScramble: '🔤', LuckyNumber: '🎰', default: '🎮',
+};
 
 const BADGES = ['⭐', '🎯', '📍', '+'];
 
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState({ totalPlays: 0, totalPoints: 0 });
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const { isDark, theme: C } = useTheme();
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchAll = async () => {
       try {
         const token = await AsyncStorage.getItem('userToken');
         if (token === 'GUEST') {
@@ -31,20 +34,35 @@ export default function ProfileScreen({ navigation }) {
           setLoading(false);
           return;
         }
-        const response = await fetch(`${BASE_URL}/auth/me`, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-        if (response.ok) setUser(data.user);
-        else Alert.alert('Lỗi', 'Không thể tải thông tin hồ sơ.');
-      } catch {
+
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Lấy thông tin user
+        const meRes = await fetch(`${BASE_URL}/auth/me`, { headers });
+        const meData = await meRes.json();
+        if (meRes.ok) setUser(meData.user);
+        else throw new Error('Không tải được hồ sơ');
+
+        // Lấy stats thật (tổng lượt chơi, tổng điểm)
+        const statsRes = await fetch(`${BASE_URL}/user/stats`, { headers });
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats({ totalPlays: statsData.totalPlays || 0, totalPoints: statsData.totalPoints || 0 });
+        }
+
+        // Lấy lịch sử chơi thật
+        const histRes = await fetch(`${BASE_URL}/user/history`, { headers });
+        if (histRes.ok) {
+          const histData = await histRes.json();
+          setHistory(histData);
+        }
+      } catch (e) {
         Alert.alert('Lỗi mạng', 'Không thể kết nối đến máy chủ.');
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchAll();
   }, []);
 
   const handleLogout = async () => {
@@ -62,8 +80,8 @@ export default function ProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={[styles.center, { backgroundColor: C.bgApp }]}>
+        <ActivityIndicator size="large" color={C.primary} />
       </View>
     );
   }
@@ -72,36 +90,53 @@ export default function ProfileScreen({ navigation }) {
   const avatarLetter = isGuest ? '👤' : displayName.charAt(0).toUpperCase();
   const levelProgress = Math.min(((user?.highScore || 0) % 100) / 100, 1);
 
+  // Format ngày tháng từ ISO string
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  };
+
+  const formatTimeAgo = (iso) => {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(hours / 24);
+    if (hours < 1) return 'Vừa xong';
+    if (hours < 24) return `${hours}h trước`;
+    return `${days} ngày trước`;
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bgCard} />
+    <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgCard} />
       <AppHeader navigation={navigation} activeTab="Profile" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Profile header */}
-        <View style={styles.profileHeader}>
+        <View style={[styles.profileHeader, { backgroundColor: C.bgCard, borderBottomColor: C.border }]}>
           <View style={styles.avatarWrap}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{avatarLetter}</Text>
+            <View style={[styles.avatar, { backgroundColor: C.primaryLight, borderColor: C.primary }]}>
+              <Text style={[styles.avatarText, { color: C.primary }]}>{avatarLetter}</Text>
             </View>
             <View style={styles.streakBadge}>
-              <Text style={styles.streakBadgeText}>⚡ 7 DAY STREAK</Text>
+              <Text style={styles.streakBadgeText}>Lv.{user?.level || 1} {user?.tierName || 'Đồng'}</Text>
             </View>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.greeting}>Hey, {displayName}! 👋</Text>
-            <Text style={styles.greetingDesc}>
+            <Text style={[styles.greeting, { color: C.textPrimary }]}>Hey, {displayName}! 👋</Text>
+            <Text style={[styles.greetingDesc, { color: C.textMuted }]}>
               {isGuest
                 ? 'Đăng nhập để lưu tiến trình và nhận phần thưởng!'
-                : "You're on fire this week. Keep up the great work and reach your goal of 50 quizzes!"}
+                : "You're on fire this week. Keep up the great work and reach your goal!"}
             </Text>
             <View style={styles.badgesRow}>
-              <View style={styles.infoBadge}>
-                <Text style={styles.infoBadgeText}>🎓 Silver Scholar</Text>
+              <View style={[styles.infoBadge, { backgroundColor: C.bgApp, borderColor: C.border }]}>
+                <Text style={[styles.infoBadgeText, { color: C.textSecondary }]}>🎓 {user?.tierName || 'Đồng'}</Text>
               </View>
-              <View style={styles.infoBadge}>
-                <Text style={styles.infoBadgeText}>📍 Global Rank #1,204</Text>
+              <View style={[styles.infoBadge, { backgroundColor: C.bgApp, borderColor: C.border }]}>
+                <Text style={[styles.infoBadgeText, { color: C.textSecondary }]}>🎮 {stats.totalPlays} lượt chơi</Text>
               </View>
             </View>
           </View>
@@ -110,39 +145,39 @@ export default function ProfileScreen({ navigation }) {
         {/* Stats row */}
         <View style={styles.statsRow}>
           {/* Quizzes completed */}
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
             <Text style={styles.statIcon}>✅</Text>
-            <Text style={styles.statLabel}>QUIZZES COMPLETED</Text>
-            <Text style={styles.statValue}>{user?.highScore ? Math.floor(user.highScore / 10) : 42}</Text>
+            <Text style={[styles.statLabel, { color: C.textMuted }]}>LƯỢT CHƠI</Text>
+            <Text style={[styles.statValue, { color: C.textPrimary }]}>{stats.totalPlays}</Text>
             <View style={styles.progressSection}>
               <View style={styles.progressLabelRow}>
-                <Text style={styles.progressLabel}>Level Progress</Text>
-                <Text style={styles.progressPct}>{Math.round(levelProgress * 100)}%</Text>
+                <Text style={[styles.progressLabel, { color: C.textMuted }]}>Level Progress</Text>
+                <Text style={[styles.progressPct, { color: C.primary }]}>{Math.round(levelProgress * 100)}%</Text>
               </View>
-              <View style={styles.progressBg}>
-                <View style={[styles.progressFill, { width: `${levelProgress * 100}%` }]} />
+              <View style={[styles.progressBg, { backgroundColor: C.bgApp }]}>
+                <View style={[styles.progressFill, { width: `${levelProgress * 100}%`, backgroundColor: C.primary }]} />
               </View>
             </View>
           </View>
 
           {/* Total score */}
-          <View style={[styles.statCard, styles.statCardPurple]}>
+          <View style={[styles.statCard, { backgroundColor: C.primary, borderColor: C.primary }]}>
             <Text style={styles.statIconWhite}>🏆</Text>
-            <Text style={styles.statLabelWhite}>TOTAL SCORE</Text>
-            <Text style={styles.statValueLarge}>{(user?.highScore || 12850).toLocaleString()}</Text>
-            <Text style={styles.statNote}>↗ Top 5% of all students</Text>
+            <Text style={styles.statLabelWhite}>HIGH SCORE</Text>
+            <Text style={styles.statValueLarge}>{(user?.highScore || 0).toLocaleString()}</Text>
+            <Text style={styles.statNote}>Tổng điểm: {stats.totalPoints.toLocaleString()}</Text>
           </View>
 
           {/* Badges */}
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
             <View style={styles.badgesHeader}>
               <Text style={styles.statIcon}>🏅</Text>
-              <Text style={styles.badgesCount}>15</Text>
+              <Text style={[styles.badgesCount, { color: C.textPrimary }]}>{Math.min(stats.totalPlays, 15)}</Text>
             </View>
-            <Text style={styles.statLabel}>BADGES EARNED</Text>
+            <Text style={[styles.statLabel, { color: C.textMuted }]}>BADGES EARNED</Text>
             <View style={styles.badgeGrid}>
               {BADGES.map((b, i) => (
-                <View key={i} style={styles.badgeItem}>
+                <View key={i} style={[styles.badgeItem, { backgroundColor: C.bgApp, borderColor: C.border }]}>
                   <Text style={styles.badgeItemText}>{b}</Text>
                 </View>
               ))}
@@ -150,64 +185,88 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Recent History */}
+        {/* Recent History — từ MongoDB */}
         <View style={styles.historySection}>
           <View style={styles.historyHeader}>
             <View>
-              <Text style={styles.historyTitle}>Recent History</Text>
-              <Text style={styles.historySubtitle}>Review and master your recent topics</Text>
+              <Text style={[styles.historyTitle, { color: C.textPrimary }]}>Lịch sử chơi</Text>
+              <Text style={[styles.historySubtitle, { color: C.textMuted }]}>
+                {history.length > 0 ? `${history.length} lượt gần đây` : 'Chưa có lịch sử'}
+              </Text>
             </View>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Leaderboard', { score: 0, total: 10 })}>
-              <Text style={styles.viewAll}>View All Activity →</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Leaderboard', { score: user?.highScore || 0, total: 10 })}>
+              <Text style={[styles.viewAll, { color: C.primary }]}>Bảng xếp hạng →</Text>
             </TouchableOpacity>
           </View>
 
-          {HISTORY.map((item) => (
-            <View key={item.id} style={styles.historyItem}>
-              <View style={[styles.historyThumb, { backgroundColor: item.bg }]}>
-                <Text style={{ fontSize: 24 }}>{item.emoji}</Text>
-              </View>
-              <View style={styles.historyInfo}>
-                <Text style={styles.historyItemTitle}>{item.title}</Text>
-                <Text style={styles.historyMeta}>{item.time}  •  {item.accuracy}</Text>
-              </View>
-              <View style={styles.historyRight}>
-                <Text style={styles.scoreLabel}>Score</Text>
-                <Text style={styles.scoreValue}>{item.score}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.replayBtn}
-                onPress={() => navigation.navigate('Quiz', { gameType: 'Quiz' })}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.replayBtnText}>↺ Replay</Text>
-              </TouchableOpacity>
+          {history.length === 0 ? (
+            <View style={[styles.emptyHistory, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+              <Text style={{ fontSize: 32, marginBottom: 8 }}>🎮</Text>
+              <Text style={[{ color: C.textMuted, fontSize: 13, textAlign: 'center' }]}>
+                Bạn chưa chơi lượt nào. Hãy bắt đầu ngay!
+              </Text>
             </View>
-          ))}
+          ) : (
+            history.map((item, index) => (
+              <View key={item._id || index} style={[styles.historyItem, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+                <View style={[styles.historyThumb, { backgroundColor: '#1E1B4B' }]}>
+                  <Text style={{ fontSize: 24 }}>{GAME_EMOJI[item.gameType] || GAME_EMOJI.default}</Text>
+                </View>
+                <View style={styles.historyInfo}>
+                  <Text style={[styles.historyItemTitle, { color: C.textPrimary }]}>{item.gameType} Quiz</Text>
+                  <Text style={[styles.historyMeta, { color: C.textMuted }]}>
+                    {formatTimeAgo(item.playedAt)}
+                    {item.accuracy ? `  •  ${item.accuracy}% Accuracy` : ''}
+                  </Text>
+                </View>
+                <View style={styles.historyRight}>
+                  <Text style={[styles.scoreLabel, { color: C.textMuted }]}>Score</Text>
+                  <Text style={[styles.scoreValue, { color: C.textPrimary }]}>{item.points || 0}</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.replayBtn, { borderColor: C.primary }]}
+                  onPress={() => navigation.navigate('Quiz', { gameType: item.gameType || 'Quiz' })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.replayBtnText, { color: C.primary }]}>↺ Replay</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Logout / Login */}
         <View style={styles.actionSection}>
           {isGuest ? (
-            <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.replace('Login')} activeOpacity={0.88}>
+            <TouchableOpacity style={[styles.loginBtn, { backgroundColor: C.primary, shadowColor: C.primary }]} onPress={() => navigation.replace('Login')} activeOpacity={0.88}>
               <Text style={styles.loginBtnText}>🔑 Đăng nhập để lưu tiến trình</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-              <Text style={styles.logoutBtnText}>Đăng Xuất</Text>
+            <TouchableOpacity
+              style={[styles.logoutBtn, { borderColor: C.wrong, backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}
+              onPress={handleLogout}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.logoutBtnText, { color: C.wrong }]}>Đăng Xuất</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerLogo}>QuizMates</Text>
+        <View style={[styles.footer, { borderTopColor: C.border }]}>
+          <Text style={[styles.footerLogo, { color: C.primary }]}>QuizMates</Text>
           <View style={styles.footerLinks}>
-            <Text style={styles.footerLink}>Privacy Policy</Text>
-            <Text style={styles.footerLink}>Terms of Service</Text>
-            <Text style={styles.footerLink}>Help Center</Text>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Terms of Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: C.textMuted }]}>Help Center</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.footerCopy}>© 2024 QuizMates. Keeplearning!</Text>
+          <Text style={[styles.footerCopy, { color: C.textMuted }]}>© 2024 QuizMates. Keep learning!</Text>
         </View>
 
       </ScrollView>
@@ -216,181 +275,74 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgApp },
-  center: { flex: 1, backgroundColor: Colors.bgApp, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { paddingBottom: 40 },
 
-  // Profile header
-  profileHeader: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 16,
-    backgroundColor: Colors.bgCard,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
+  profileHeader: { flexDirection: 'row', padding: 20, gap: 16, borderBottomWidth: 1 },
   avatarWrap: { alignItems: 'center' },
-  avatar: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 3, borderColor: Colors.primary,
-    marginBottom: 6,
-  },
-  avatarText: { fontSize: 32, fontWeight: '900', color: Colors.primary },
-  streakBadge: {
-    backgroundColor: '#1E3A5F',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
+  avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', borderWidth: 3, marginBottom: 6 },
+  avatarText: { fontSize: 32, fontWeight: '900' },
+  streakBadge: { backgroundColor: '#1E3A5F', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   streakBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
   profileInfo: { flex: 1 },
-  greeting: { fontSize: 18, fontWeight: '900', color: Colors.textPrimary, marginBottom: 6 },
-  greetingDesc: { fontSize: 12, color: Colors.textMuted, lineHeight: 17, marginBottom: 12 },
+  greeting: { fontSize: 18, fontWeight: '900', marginBottom: 6 },
+  greetingDesc: { fontSize: 12, lineHeight: 17, marginBottom: 12 },
   badgesRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  infoBadge: {
-    backgroundColor: Colors.bgApp,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  infoBadgeText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
+  infoBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  infoBadgeText: { fontSize: 11, fontWeight: '600' },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 10,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-  },
-  statCardPurple: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 20, paddingTop: 20, gap: 10, marginBottom: 24 },
+  statCard: { flex: 1, borderRadius: 16, padding: 14, borderWidth: 1, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
   statIcon: { fontSize: 20, marginBottom: 6 },
   statIconWhite: { fontSize: 20, marginBottom: 6 },
-  statLabel: { fontSize: 9, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.5, marginBottom: 6 },
+  statLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6 },
   statLabelWhite: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, marginBottom: 6 },
-  statValue: { fontSize: 28, fontWeight: '900', color: Colors.textPrimary },
-  statValueLarge: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 6 },
+  statValue: { fontSize: 28, fontWeight: '900' },
+  statValueLarge: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
   statNote: { fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
 
   progressSection: { marginTop: 8 },
   progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  progressLabel: { fontSize: 10, color: Colors.textMuted },
-  progressPct: { fontSize: 10, color: Colors.primary, fontWeight: '700' },
-  progressBg: { height: 6, backgroundColor: Colors.bgApp, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: 6, backgroundColor: Colors.primary, borderRadius: 3 },
+  progressLabel: { fontSize: 10 },
+  progressPct: { fontSize: 10, fontWeight: '700' },
+  progressBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3 },
 
   badgesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  badgesCount: { fontSize: 22, fontWeight: '900', color: Colors.textPrimary },
+  badgesCount: { fontSize: 22, fontWeight: '900' },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  badgeItem: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: Colors.bgApp,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.border,
-  },
+  badgeItem: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   badgeItemText: { fontSize: 14 },
 
-  // History
   historySection: { paddingHorizontal: 20, marginBottom: 20 },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  historyTitle: { fontSize: 17, fontWeight: '900', color: Colors.textPrimary },
-  historySubtitle: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  viewAll: { fontSize: 13, color: Colors.primary, fontWeight: '700' },
+  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  historyTitle: { fontSize: 17, fontWeight: '900' },
+  historySubtitle: { fontSize: 12, marginTop: 2 },
+  viewAll: { fontSize: 13, fontWeight: '700' },
 
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bgCard,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-  },
-  historyThumb: {
-    width: 52, height: 52, borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-  },
+  emptyHistory: { borderRadius: 14, padding: 24, alignItems: 'center', borderWidth: 1 },
+
+  historyItem: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, gap: 12, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+  historyThumb: { width: 52, height: 52, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   historyInfo: { flex: 1 },
-  historyItemTitle: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary, marginBottom: 3 },
-  historyMeta: { fontSize: 11, color: Colors.textMuted },
+  historyItemTitle: { fontSize: 13, fontWeight: '700', marginBottom: 3 },
+  historyMeta: { fontSize: 11 },
   historyRight: { alignItems: 'flex-end', marginRight: 4 },
-  scoreLabel: { fontSize: 10, color: Colors.textMuted, fontWeight: '600' },
-  scoreValue: { fontSize: 18, fontWeight: '900', color: Colors.textPrimary },
-  replayBtn: {
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  replayBtnText: { fontSize: 12, fontWeight: '700', color: Colors.primary },
+  scoreLabel: { fontSize: 10, fontWeight: '600' },
+  scoreValue: { fontSize: 18, fontWeight: '900' },
+  replayBtn: { borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  replayBtnText: { fontSize: 12, fontWeight: '700' },
 
-  // Action
   actionSection: { paddingHorizontal: 20, marginBottom: 24 },
-  loginBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
+  loginBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', elevation: 4, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
   loginBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  logoutBtn: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.wrong,
-  },
-  logoutBtnText: { color: Colors.wrong, fontWeight: '800', fontSize: 15 },
+  logoutBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5 },
+  logoutBtnText: { fontWeight: '800', fontSize: 15 },
 
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerLogo: { fontSize: 15, fontWeight: '900', color: Colors.primary },
+  footer: { paddingHorizontal: 20, paddingTop: 20, borderTopWidth: 1, alignItems: 'center', gap: 6 },
+  footerLogo: { fontSize: 15, fontWeight: '900' },
   footerLinks: { flexDirection: 'row', gap: 16 },
-  footerLink: { fontSize: 11, color: Colors.textMuted, fontWeight: '600' },
-  footerCopy: { fontSize: 11, color: Colors.textMuted },
+  footerLink: { fontSize: 11, fontWeight: '600' },
+  footerCopy: { fontSize: 11 },
 });
