@@ -1,309 +1,385 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity,
-    SafeAreaView, StatusBar, Dimensions, Animated
+  View, Text, StyleSheet, TouchableOpacity,
+  SafeAreaView, StatusBar, ScrollView,
 } from 'react-native';
 import { Colors } from '../Styles/Colors';
+import AppHeader from '../Components/AppHeader';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.78;
-const CARD_GAP = 16;
-const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
-
-const GAMES_LIST = [
-    {
-        id: '1', title: 'Trắc Nghiệm', emoji: '🧠', type: 'Quiz',
-        desc: 'Chọn 1 đáp án đúng trong 4 lựa chọn. Nhanh tay nào!',
-        color: '#6C63FF', badge: 'PHỔ BIẾN',
-    },
-    {
-        id: '2', title: 'Ghép Cặp', emoji: '🖼️', type: 'Matching',
-        desc: 'Tìm và ghép các cặp thẻ bài trùng khớp với nhau.',
-        color: '#0891b2', badge: 'MỚI',
-    },
-    {
-        id: '3', title: 'Số May Mắn', emoji: '🎲', type: 'LuckyNumber',
-        desc: 'Thử thách vận may — đoán con số may mắn hôm nay!',
-        color: '#d97706', badge: 'VUI',
-    },
-    {
-        id: '4', title: 'Flashcard', emoji: '🎴', type: 'Flashcard',
-        desc: 'Lật thẻ học tập thông minh để ghi nhớ kiến thức.',
-        color: '#059669', badge: 'HỌC TẬP',
-    },
-    {
-        id: '5', title: 'Từ Xáo Trộn', emoji: '🧩', type: 'WordScramble',
-        desc: 'Sắp xếp lại các chữ cái bị hoán vị thành từ đúng.',
-        color: '#dc2626', badge: 'THÁCH THỨC',
-    },
-    {
-        id: '6', title: 'Hộp Quà Bí Ẩn', emoji: '🎁', type: 'OpenBox',
-        desc: 'Chọn ngẫu nhiên hộp quà — bên trong là điều bất ngờ!',
-        color: '#7c3aed', badge: 'BẤT NGỜ',
-    },
-    {
-        id: '7', title: 'Nhìn Hình Đoán Chữ', emoji: '🎤', type: 'PictureQuiz',
-        desc: 'Quan sát hình ảnh và gõ đúng từ khóa bí ẩn.',
-        color: '#0891b2', badge: 'SÁNG TẠO',
-    },
-    {
-        id: '8', title: 'Đúng hay Sai', emoji: '⚖️', type: 'TrueFalse',
-        desc: 'Đưa ra quyết định thật nhanh — Đúng hay Sai?',
-        color: '#d97706', badge: 'NHANH TRÍ',
-    },
-    {
-        id: '9', title: 'Vòng Quay', emoji: '🎡', type: 'SimpleSpin',
-        desc: 'Quay vòng tròn kịch tính và nhận thử thách ngẫu nhiên.',
-        color: '#059669', badge: 'MAY MẮN',
-    },
-    {
-        id: '10', title: 'Tìm Hình Khớp', emoji: '🎯', type: 'FindMatch',
-        desc: 'So khớp đối tượng được chọn với hình mục tiêu.',
-        color: '#dc2626', badge: 'QUAN SÁT',
-    },
+const PLAY_MODES = [
+  {
+    id: '1',
+    title: 'Classic Quiz',
+    desc: 'The standard multiple choice format you know and love. Perfect for quick reviews and focused subject testing.',
+    badge: '⊙ Most Popular',
+    badgeBg: Colors.primaryLight,
+    badgeColor: Colors.primary,
+    btnLabel: 'Play Now →',
+    btnStyle: 'primary',
+    type: 'Quiz',
+    size: 'large',
+    emoji: '💻',
+  },
+  {
+    id: '2',
+    title: 'Duck Race',
+    desc: 'Answer questions fast to move your duck forward. Compete against friends in real-time!',
+    badge: 'Live Multiplayer',
+    badgeBg: Colors.accentLight,
+    badgeColor: Colors.accent,
+    btnLabel: 'Enter Race',
+    btnStyle: 'outline',
+    type: 'TrueFalse',
+    size: 'small',
+    emoji: '🦆',
+  },
+  {
+    id: '3',
+    title: 'Lucky Draw',
+    desc: 'Answer correctly for a chance to spin the wheel and win exclusive power-ups and badges.',
+    badge: 'Bonus Points',
+    badgeBg: '#FEF3C7',
+    badgeColor: '#D97706',
+    btnLabel: 'Try My Luck',
+    btnStyle: 'outline',
+    type: 'LuckyNumber',
+    size: 'small',
+    emoji: '🎰',
+  },
+  {
+    id: '4',
+    title: 'Jigsaw Puzzle',
+    desc: 'Unlock puzzle pieces by answering correctly. Solve the final image for a massive XP boost.',
+    badge: null,
+    btnLabel: 'Start Solving',
+    btnStyle: 'outline',
+    type: 'Flashcard',
+    size: 'small',
+    emoji: '🧩',
+  },
+  {
+    id: '5',
+    title: 'Word Link',
+    desc: 'Connect clues to words in this fast-paced vocabulary challenge. Great for language learners!',
+    badge: null,
+    btnLabel: 'Link Words',
+    btnStyle: 'outline',
+    type: 'WordScramble',
+    size: 'small',
+    emoji: '🔤',
+  },
 ];
 
 export default function HomeScreen({ navigation }) {
-    const [activeIndex, setActiveIndex] = useState(0);
-    const flatListRef = useRef(null);
-    const scrollX = useRef(new Animated.Value(0)).current;
+  const handlePlay = (type) => {
+    navigation.navigate('Quiz', { gameType: type });
+  };
 
-    const handleSelectGame = (gameType) => {
-        navigation.navigate('Quiz', { gameType });
-    };
+  const largeMode = PLAY_MODES[0];
+  const smallModes = PLAY_MODES.slice(1);
 
-    const onViewableItemsChanged = useRef(({ viewableItems }) => {
-        if (viewableItems.length > 0) {
-            setActiveIndex(viewableItems[0].index ?? 0);
-        }
-    }).current;
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.bgCard} />
+      <AppHeader navigation={navigation} activeTab="Play" />
 
-    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-    const renderCard = ({ item, index }) => {
-        const inputRange = [
-            (index - 1) * (CARD_WIDTH + CARD_GAP),
-            index * (CARD_WIDTH + CARD_GAP),
-            (index + 1) * (CARD_WIDTH + CARD_GAP),
-        ];
-        const scale = scrollX.interpolate({
-            inputRange, outputRange: [0.9, 1, 0.9], extrapolate: 'clamp',
-        });
-        const opacity = scrollX.interpolate({
-            inputRange, outputRange: [0.65, 1, 0.65], extrapolate: 'clamp',
-        });
+        {/* Title */}
+        <View style={styles.titleSection}>
+          <Text style={styles.pageTitle}>
+            Choose Your <Text style={styles.pageTitlePurple}>Play Style</Text>
+          </Text>
+          <Text style={styles.pageSubtitle}>
+            Turn your study session into a game. Select a mode to start challenging yourself and earning rewards.
+          </Text>
+        </View>
 
-        return (
-            <Animated.View style={[styles.cardWrapper, { transform: [{ scale }], opacity }]}>
-                <TouchableOpacity
-                    style={[styles.card, { backgroundColor: item.color }]}
-                    onPress={() => handleSelectGame(item.type)}
-                    activeOpacity={0.92}
-                >
-                    {/* Badge */}
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{item.badge}</Text>
-                    </View>
-
-                    {/* Số thứ tự */}
-                    <View style={styles.cardNumber}>
-                        <Text style={styles.cardNumberText}>{index + 1}/{GAMES_LIST.length}</Text>
-                    </View>
-
-                    {/* Emoji */}
-                    <View style={styles.emojiContainer}>
-                        <Text style={styles.bigEmoji}>{item.emoji}</Text>
-                    </View>
-
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDesc}>{item.desc}</Text>
-
-                    {/* Nút chơi */}
-                    <TouchableOpacity
-                        style={styles.playBtn}
-                        onPress={() => handleSelectGame(item.type)}
-                        activeOpacity={0.85}
-                    >
-                        <Text style={styles.playBtnText}>⚡ Chơi ngay</Text>
-                    </TouchableOpacity>
-
-                    {/* Decoration */}
-                    <View style={[styles.decorCircle, styles.decorCircle1]} />
-                    <View style={[styles.decorCircle, styles.decorCircle2]} />
-                </TouchableOpacity>
-            </Animated.View>
-        );
-    };
-
-    return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor={Colors.bgApp} />
-
-            {/* Header */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerTitle}>Chọn Trò Chơi 🚀</Text>
-                    <Text style={styles.headerSub}>Vuốt ngang để xem tất cả {GAMES_LIST.length} trò chơi</Text>
-                </View>
-                <View style={styles.headerBadge}>
-                    <Text style={styles.headerBadgeText}>{GAMES_LIST.length} trò</Text>
-                </View>
+        {/* Top row: large + small */}
+        <View style={styles.topRow}>
+          {/* Large card */}
+          <View style={styles.largeCard}>
+            {largeMode.badge && (
+              <View style={[styles.modeBadge, { backgroundColor: largeMode.badgeBg }]}>
+                <Text style={[styles.modeBadgeText, { color: largeMode.badgeColor }]}>{largeMode.badge}</Text>
+              </View>
+            )}
+            <Text style={styles.largeModeTitle}>{largeMode.title}</Text>
+            <Text style={styles.largeModeDesc}>{largeMode.desc}</Text>
+            <TouchableOpacity
+              style={styles.btnPrimary}
+              onPress={() => handlePlay(largeMode.type)}
+              activeOpacity={0.88}
+            >
+              <Text style={styles.btnPrimaryText}>{largeMode.btnLabel}</Text>
+            </TouchableOpacity>
+            <View style={styles.largeCardEmoji}>
+              <Text style={{ fontSize: 64 }}>{largeMode.emoji}</Text>
             </View>
+          </View>
 
-            {/* Horizontal Pager */}
-            <Animated.FlatList
-                ref={flatListRef}
-                data={GAMES_LIST}
-                keyExtractor={(item) => item.id}
-                renderItem={renderCard}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={CARD_WIDTH + CARD_GAP}
-                snapToAlignment="center"
-                decelerationRate="fast"
-                contentContainerStyle={styles.listContent}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                    { useNativeDriver: true }
+          {/* Duck Race card */}
+          <View style={styles.smallCardTop}>
+            <View style={[styles.modeBadge, { backgroundColor: smallModes[0].badgeBg, alignSelf: 'flex-start', marginBottom: 8 }]}>
+              <Text style={[styles.modeBadgeText, { color: smallModes[0].badgeColor }]}>{smallModes[0].badge}</Text>
+            </View>
+            <View style={styles.smallCardThumb}>
+              <Text style={{ fontSize: 48 }}>{smallModes[0].emoji}</Text>
+            </View>
+            <Text style={styles.smallModeTitle}>{smallModes[0].title}</Text>
+            <Text style={styles.smallModeDesc}>{smallModes[0].desc}</Text>
+            <TouchableOpacity
+              style={styles.btnOutline}
+              onPress={() => handlePlay(smallModes[0].type)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.btnOutlineText}>{smallModes[0].btnLabel}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Bottom row: 3 small cards */}
+        <View style={styles.bottomRow}>
+          {smallModes.slice(1).map((mode) => (
+            <View key={mode.id} style={styles.bottomCard}>
+              <View style={styles.bottomCardThumb}>
+                <Text style={{ fontSize: 36 }}>{mode.emoji}</Text>
+                {mode.badge && (
+                  <View style={[styles.thumbBadge, { backgroundColor: mode.badgeBg || Colors.primaryLight }]}>
+                    <Text style={[styles.thumbBadgeText, { color: mode.badgeColor || Colors.primary }]}>{mode.badge}</Text>
+                  </View>
                 )}
-                scrollEventThrottle={16}
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={viewabilityConfig}
-            />
-
-            {/* Dots */}
-            <View style={styles.dotsRow}>
-                {GAMES_LIST.map((item, index) => (
-                    <TouchableOpacity
-                        key={item.id}
-                        onPress={() => flatListRef.current?.scrollToIndex({ index, animated: true })}
-                    >
-                        <View style={[
-                            styles.dot,
-                            index === activeIndex && [styles.dotActive, { backgroundColor: GAMES_LIST[activeIndex].color }]
-                        ]} />
-                    </TouchableOpacity>
-                ))}
+              </View>
+              <Text style={styles.bottomModeTitle}>{mode.title}</Text>
+              <Text style={styles.bottomModeDesc}>{mode.desc}</Text>
+              <TouchableOpacity
+                style={styles.btnOutline}
+                onPress={() => handlePlay(mode.type)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.btnOutlineText}>{mode.btnLabel}</Text>
+              </TouchableOpacity>
             </View>
+          ))}
+        </View>
 
-            {/* Active label */}
-            <View style={styles.activeLabel}>
-                <Text style={styles.activeLabelEmoji}>{GAMES_LIST[activeIndex].emoji}</Text>
-                <Text style={[styles.activeLabelText, { color: GAMES_LIST[activeIndex].color }]}>
-                    {GAMES_LIST[activeIndex].title}
-                </Text>
-            </View>
+        {/* Streak Banner */}
+        <View style={styles.streakBanner}>
+          <View style={styles.streakIconWrap}>
+            <Text style={{ fontSize: 22 }}>⚡</Text>
+          </View>
+          <View style={styles.streakInfo}>
+            <Text style={styles.streakTitle}>5 Day Streak!</Text>
+            <Text style={styles.streakDesc}>Play any mode today to keep your streak alive and earn 2x XP.</Text>
+          </View>
+          <View style={styles.streakDots}>
+            {[1,2,3,4,5,6,7].map((d) => (
+              <View key={d} style={[styles.streakDot, d <= 5 && styles.streakDotActive]} />
+            ))}
+          </View>
+        </View>
 
-        </SafeAreaView>
-    );
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerLogo}>QuizMates</Text>
+          <View style={styles.footerLinks}>
+            <Text style={styles.footerLink}>Privacy Policy</Text>
+            <Text style={styles.footerLink}>Terms of Service</Text>
+            <Text style={styles.footerLink}>Help Center</Text>
+          </View>
+          <Text style={styles.footerCopy}>© 2024 QuizMates. Keeplearning!</Text>
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.bgApp },
+  container: { flex: 1, backgroundColor: Colors.bgApp },
+  scroll: { paddingBottom: 40 },
 
-    // Header
-    header: {
-        flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24, paddingTop: 20, paddingBottom: 20,
-    },
-    headerTitle: {
-        fontSize: 26, fontWeight: '900',
-        color: Colors.textPrimary, letterSpacing: 0.3,
-    },
-    headerSub: { fontSize: 13, color: Colors.textMuted, marginTop: 3 },
-    headerBadge: {
-        backgroundColor: Colors.primaryLight,
-        paddingHorizontal: 12, paddingVertical: 6,
-        borderRadius: 20,
-    },
-    headerBadgeText: { color: Colors.primary, fontWeight: '700', fontSize: 13 },
+  titleSection: {
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    paddingBottom: 24,
+  },
+  pageTitle: { fontSize: 26, fontWeight: '900', color: Colors.textPrimary, marginBottom: 10 },
+  pageTitlePurple: { color: Colors.primary },
+  pageSubtitle: { fontSize: 13, color: Colors.textMuted, lineHeight: 19 },
 
-    // List
-    listContent: { paddingHorizontal: SIDE_PADDING, paddingVertical: 8 },
-    cardWrapper: { width: CARD_WIDTH, marginRight: CARD_GAP },
-    card: {
-        width: CARD_WIDTH,
-        height: SCREEN_HEIGHT * 0.46,
-        borderRadius: 28, padding: 28,
-        justifyContent: 'center', alignItems: 'center',
-        overflow: 'hidden',
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25, shadowRadius: 14,
-    },
+  // Top row
+  topRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 14,
+    marginBottom: 14,
+  },
+  largeCard: {
+    flex: 1.4,
+    backgroundColor: Colors.bgCard,
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    overflow: 'hidden',
+    minHeight: 220,
+  },
+  modeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  modeBadgeText: { fontSize: 11, fontWeight: '700' },
+  largeModeTitle: { fontSize: 20, fontWeight: '900', color: Colors.textPrimary, marginBottom: 8 },
+  largeModeDesc: { fontSize: 12, color: Colors.textMuted, lineHeight: 17, marginBottom: 16 },
+  largeCardEmoji: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    opacity: 0.15,
+  },
 
-    // Badge trên card
-    badge: {
-        position: 'absolute', top: 18, left: 18,
-        backgroundColor: 'rgba(255,255,255,0.25)',
-        paddingHorizontal: 10, paddingVertical: 4,
-        borderRadius: 20,
-    },
-    badgeText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  smallCardTop: {
+    flex: 1,
+    backgroundColor: Colors.bgCard,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  smallCardThumb: {
+    height: 80,
+    backgroundColor: Colors.bgApp,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  smallModeTitle: { fontSize: 15, fontWeight: '800', color: Colors.textPrimary, marginBottom: 5 },
+  smallModeDesc: { fontSize: 11, color: Colors.textMuted, lineHeight: 15, marginBottom: 12 },
 
-    // Số thứ tự
-    cardNumber: {
-        position: 'absolute', top: 18, right: 18,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        paddingHorizontal: 10, paddingVertical: 4,
-        borderRadius: 20,
-    },
-    cardNumberText: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '700' },
+  // Bottom row
+  bottomRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 20,
+  },
+  bottomCard: {
+    flex: 1,
+    backgroundColor: Colors.bgCard,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+  },
+  bottomCardThumb: {
+    height: 70,
+    backgroundColor: Colors.bgApp,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  thumbBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  thumbBadgeText: { fontSize: 8, fontWeight: '800' },
+  bottomModeTitle: { fontSize: 13, fontWeight: '800', color: Colors.textPrimary, marginBottom: 4 },
+  bottomModeDesc: { fontSize: 10, color: Colors.textMuted, lineHeight: 14, marginBottom: 10 },
 
-    // Emoji
-    emojiContainer: {
-        width: 96, height: 96, borderRadius: 48,
-        backgroundColor: 'rgba(255,255,255,0.22)',
-        justifyContent: 'center', alignItems: 'center',
-        marginBottom: 18,
-    },
-    bigEmoji: { fontSize: 48 },
+  // Buttons
+  btnPrimary: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    alignSelf: 'flex-start',
+    elevation: 3,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  btnPrimaryText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  btnOutline: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  btnOutlineText: { color: Colors.primary, fontWeight: '700', fontSize: 12 },
 
-    cardTitle: {
-        fontSize: 24, fontWeight: '900', color: '#fff',
-        textAlign: 'center', marginBottom: 10, letterSpacing: 0.2,
-    },
-    cardDesc: {
-        fontSize: 13, color: 'rgba(255,255,255,0.82)',
-        textAlign: 'center', lineHeight: 19,
-        marginBottom: 24, paddingHorizontal: 8,
-    },
+  // Streak banner
+  streakBanner: {
+    marginHorizontal: 20,
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 32,
+    elevation: 4,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  streakIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  streakInfo: { flex: 1 },
+  streakTitle: { fontSize: 15, fontWeight: '900', color: '#fff', marginBottom: 3 },
+  streakDesc: { fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 15 },
+  streakDots: { flexDirection: 'row', gap: 4 },
+  streakDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  streakDotActive: { backgroundColor: '#fff' },
 
-    // Play button
-    playBtn: {
-        backgroundColor: 'rgba(255,255,255,0.22)',
-        paddingHorizontal: 28, paddingVertical: 13,
-        borderRadius: 50,
-        borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)',
-    },
-    playBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-
-    // Decoration
-    decorCircle: {
-        position: 'absolute', borderRadius: 999,
-        backgroundColor: 'rgba(255,255,255,0.07)',
-    },
-    decorCircle1: { width: 180, height: 180, top: -60, left: -60 },
-    decorCircle2: { width: 120, height: 120, bottom: -30, right: -30 },
-
-    // Dots
-    dotsRow: {
-        flexDirection: 'row', justifyContent: 'center',
-        alignItems: 'center', marginTop: 18, gap: 6,
-    },
-    dot: {
-        width: 8, height: 8, borderRadius: 4,
-        backgroundColor: Colors.border,
-    },
-    dotActive: { width: 24, height: 8, borderRadius: 4 },
-
-    // Active label
-    activeLabel: {
-        flexDirection: 'row', justifyContent: 'center',
-        alignItems: 'center', marginTop: 12, gap: 8,
-    },
-    activeLabelEmoji: { fontSize: 20 },
-    activeLabelText: { fontSize: 16, fontWeight: '800' },
+  // Footer
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    alignItems: 'center',
+    gap: 6,
+  },
+  footerLogo: { fontSize: 15, fontWeight: '900', color: Colors.primary },
+  footerLinks: { flexDirection: 'row', gap: 16 },
+  footerLink: { fontSize: 11, color: Colors.textMuted, fontWeight: '600' },
+  footerCopy: { fontSize: 11, color: Colors.textMuted },
 });

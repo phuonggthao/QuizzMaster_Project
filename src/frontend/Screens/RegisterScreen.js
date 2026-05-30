@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
         borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
     },
     logoEmoji: { fontSize: 34 },
-    appName: { fontSize: 28, fontWeight: '900', color: Colors.textLight, letterSpacing: 0.5 },
+    appName: { fontSize: 28, fontWeight: '900', color: Colors.white, letterSpacing: 0.5 },
     tagline: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
 
     card: {
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4, shadowRadius: 8,
     },
     btnDisabled: { opacity: 0.6 },
-    btnPrimaryText: { color: Colors.textLight, fontSize: 16, fontWeight: '800' },
+    btnPrimaryText: { color: Colors.white, fontSize: 16, fontWeight: '800' },
     linkRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     linkText: { color: Colors.textMuted, fontSize: 14 },
     linkHighlight: { color: Colors.primary, fontSize: 14, fontWeight: '700' },

@@ -32,7 +32,7 @@ export default function LoginScreen({ navigation }) {
                 if (data.user.role === 'Admin') {
                     navigation.replace('Admin');
                 } else {
-                    navigation.replace('Home');
+                    navigation.replace('Landing');
                 }
             } else {
                 Alert.alert("Đăng nhập thất bại", data.message || "Sai tài khoản hoặc mật khẩu!");
@@ -42,6 +42,20 @@ export default function LoginScreen({ navigation }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Đăng nhập khách — không cần tài khoản
+    const handleGuestLogin = async () => {
+        await AsyncStorage.setItem('userToken', 'GUEST');
+        await AsyncStorage.setItem('userInfo', JSON.stringify({
+            fullName: 'Khách',
+            username: 'guest',
+            role: 'Guest',
+            highScore: 0,
+            level: 1,
+            tierName: 'Đồng',
+        }));
+        navigation.replace('Landing');
     };
 
     return (
@@ -100,6 +114,22 @@ export default function LoginScreen({ navigation }) {
                         </Text>
                     </TouchableOpacity>
 
+                    {/* Divider */}
+                    <View style={styles.dividerRow}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>hoặc</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    {/* Nút khách */}
+                    <TouchableOpacity
+                        style={styles.btnGuest}
+                        onPress={handleGuestLogin}
+                        activeOpacity={0.85}
+                    >
+                        <Text style={styles.btnGuestText}>👤 Chơi với tư cách Khách</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         style={styles.linkRow}
                         onPress={() => navigation.navigate('Register')}
@@ -142,7 +172,7 @@ const styles = StyleSheet.create({
     logoEmoji: { fontSize: 38 },
     appName: {
         fontSize: 32, fontWeight: '900',
-        color: Colors.textLight, letterSpacing: 1,
+        color: Colors.white, letterSpacing: 1,
     },
     tagline: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
 
@@ -182,7 +212,7 @@ const styles = StyleSheet.create({
     },
     btnDisabled: { opacity: 0.6 },
     btnPrimaryText: {
-        color: Colors.textLight, fontSize: 16, fontWeight: '800', letterSpacing: 0.5,
+        color: Colors.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.5,
     },
     linkRow: {
         flexDirection: 'row', justifyContent: 'center',
@@ -190,4 +220,28 @@ const styles = StyleSheet.create({
     },
     linkText: { color: Colors.textMuted, fontSize: 14 },
     linkHighlight: { color: Colors.primary, fontSize: 14, fontWeight: '700' },
+
+    // Divider
+    dividerRow: {
+        flexDirection: 'row', alignItems: 'center',
+        marginVertical: 20, gap: 10,
+    },
+    dividerLine: {
+        flex: 1, height: 1, backgroundColor: Colors.border,
+    },
+    dividerText: {
+        color: Colors.textMuted, fontSize: 13, fontWeight: '500',
+    },
+
+    // Nút khách
+    btnGuest: {
+        backgroundColor: Colors.bgApp,
+        borderRadius: 14, paddingVertical: 15,
+        alignItems: 'center',
+        borderWidth: 1.5, borderColor: Colors.border,
+        marginBottom: 4,
+    },
+    btnGuestText: {
+        color: Colors.textPrimary, fontSize: 15, fontWeight: '700',
+    },
 });

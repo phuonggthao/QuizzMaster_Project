@@ -8,7 +8,16 @@ import { addQuestion } from '../backend/Service/questionService.js';
 
 // ⚙️ KHỞI TẠO EXPRESS APP TRƯỚC TIÊN
 const app = express();
-app.use(express.json()); // Phải đặt TRƯỚC khi đăng ký routes để req.body hoạt động
+app.use(express.json());
+
+// ✅ CORS — cho phép web browser và điện thoại gọi API
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
+    next();
+});
 
 const router = express.Router();
 
