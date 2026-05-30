@@ -1,7 +1,6 @@
 Chạy lệnh sau trong Terminal để cài đặt đồng thời tất cả các thư viện
 npm install mongoose dotenv bcryptjs express
 npm install mongodb
-npm install mongodb@3.6
 npm install jsonwebtoken
 npm install bcryptjs
 Mở Terminal tại thư mục dự án và chạy lệnh để nạp dữ liệu
@@ -18,6 +17,12 @@ ipconfig -> đổi lại ip trong config.js
  npm install @react-navigation/native @react-navigation/stack --legacy-peer-deps
  npx expo install react-native-screens react-native-safe-area-context -- --legacy-peer-deps
   khi nạp dữ liệu câu hỏi thì cd src -> cd backend -> node seed.js
+
+  tkadmin: test_thao
+  mk: 123
+
+  tkuser: thao_thao
+  mk:12345
 
 
   
