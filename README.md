@@ -8,8 +8,7 @@ Mở Terminal tại thư mục dự án và chạy lệnh để nạp dữ liệ
 node --dns-result-order=ipv4first 
 src/backend/seed.js
 kết nối data
- npm run dev
-
+ node src/Api/index.js
  .env
  MONGO_URI=mongodb://admin:123456ABC@ac-1jjcnit-shard-00-00.rivxhf9.mongodb.net:27017,ac-1jjcnit-shard-00-01.rivxhf9.mongodb.net:27017,ac-1jjcnit-shard-00-02.rivxhf9.mongodb.net:27017/QuizzMaster?ssl=true&replicaSet=atlas-dz725f-shard-0&authSource=admin&appName=ClusterQuizzMaster
 

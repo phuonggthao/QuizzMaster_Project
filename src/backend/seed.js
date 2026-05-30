@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import Question from './Model/Question.js';
 import Category from './Model/Category.js';
 import GameConfig from './Model/GameConfig.js';
+import User from './Model/User.js';
+import { connectDatabase } from '../Api/mongoClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +131,13 @@ const sampleQuestions = [
         difficulty: "Easy"
     }
 ];
+
+const runSeed = async () => {
+    await connectDatabase();
+    const newUser = await User.create({ username: "test_thao", password: "123", fullName: "Thảo Test" });
+    console.log("Đã tạo thành công:", newUser);
+};
+runSeed();
 const seedDB = async () => {
     try {
         // Chuỗi chính chủ bản 3.6 của Thảo sau khi đã đổi user, pass và thêm tên DB

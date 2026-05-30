@@ -15,5 +15,5 @@ const userSchema = new mongoose.Schema({
     tierName:  { type: String, default: 'Đồng' }    // Hạng rank hiển thị
 }, { timestamps: true });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 export default User;
