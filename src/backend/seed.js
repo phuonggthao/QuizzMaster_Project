@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+mongoose.set('debug', true);
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -59,7 +60,7 @@ const sampleQuestions = [
     { gameType: "Quiz", category: "Tiếng Anh", questionText: "Who is the US President?", options: ["Obama", "Biden", "Trump", "Bush"], correctAnswer: "Biden", difficulty: "Easy" },
 
     // 2. MATCHING
-    { gameType: "Matching", category: "Tiếng Anh", correctAnswer: "Pairs_Configured", pairs: [{id: "1", text: "Apple", image: "apple.png"}, {id: "1", text: "Quả táo", image: "apple_vn.png"}, {id: "2", text: "Banana", image: "banana.png"}, {id: "2", text: "Quả chuối", image: "banana_vn.png"}], difficulty: "Easy" },
+    { gameType: "Matching", category: "Tiếng Anh", correctAnswer: "Pairs_Configured", pairs: [{id: "1", text: "Apple", image: "https://res.cloudinary.com/ddbedajz0/image/upload/v1780200970/t%C3%A1o_tv8bkg.jpg"}, {id: "1", text: "Quả táo", image: "https://res.cloudinary.com/ddbedajz0/image/upload/v1780200970/t%C3%A1o_tv8bkg.jpg"}, {id: "2", text: "Banana", image: "banana.png"}, {id: "2", text: "Quả chuối", image: "banana_vn.png"}], difficulty: "Easy" },
     { gameType: "Matching", category: "Tiếng Anh", correctAnswer: "Pairs_Configured", pairs: [{id: "1", text: "Cat", image: "cat.png"}, {id: "1", text: "Con mèo", image: "cat_vn.png"}, {id: "2", text: "Dog", image: "dog.png"}, {id: "2", text: "Con chó", image: "dog_vn.png"}], difficulty: "Easy" },
     { gameType: "Matching", category: "Tiếng Anh", correctAnswer: "Pairs_Configured", pairs: [{id: "1", text: "Sun", image: "sun.png"}, {id: "1", text: "Mặt trời", image: "sun_vn.png"}, {id: "2", text: "Moon", image: "moon.png"}, {id: "2", text: "Mặt trăng", image: "moon_vn.png"}], difficulty: "Easy" },
     { gameType: "Matching", category: "Tiếng Anh", correctAnswer: "Pairs_Configured", pairs: [{id: "1", text: "Book", image: "book.png"}, {id: "1", text: "Quyển sách", image: "book_vn.png"}, {id: "2", text: "Pen", image: "pen.png"}, {id: "2", text: "Cây bút", image: "pen_vn.png"}], difficulty: "Easy" },
@@ -254,42 +255,33 @@ const seedDB = async () => {
     try {
         const directURI = "mongodb://admin:123456ABC@ac-1jjcnit-shard-00-00.rivxhf9.mongodb.net:27017,ac-1jjcnit-shard-00-01.rivxhf9.mongodb.net:27017,ac-1jjcnit-shard-00-02.rivxhf9.mongodb.net:27017/QuizzMaster?ssl=true&replicaSet=atlas-dz725f-shard-0&authSource=admin&appName=ClusterQuizzMaster";
         
-        await mongoose.connect(directURI, {
-            serverSelectionTimeoutMS: 5000
+        // Cấu hình để kết nối nhanh nhất có thể
+        await mongoose.connect(directURI, { 
+            serverSelectionTimeoutMS: 30000,
+            autoIndex: false // TẮT autoIndex để tránh xung đột
         });
-        console.log("⚡ Đã kết nối với MongoDB Atlas thành công...");
+        
+        console.log("⚡ Đã kết nối thành công. Đang làm sạch database...");
 
-        // 1. XÓA SẠCH DỮ LIỆU CŨ MỘT LẦN DUY NHẤT
-        await User.deleteMany({});
-        await Category.deleteMany({});
-        await GameConfig.deleteMany({});
-        await Question.deleteMany({});
-        console.log("🧹 Đã xóa sạch toàn bộ dữ liệu cũ trong các collection.");
+        // SỬ DỤNG NATIVE DRIVER ĐỂ XÓA (Cực nhanh, không qua Mongoose buffer)
+        const db = mongoose.connection.db;
+        await db.dropDatabase(); 
+        console.log("🧹 Đã drop toàn bộ database cũ.");
 
-        // 2. BĂM MẬT KHẨU
-        const passwordPlain = "123";
-        const hashedPassword = await bcrypt.hash(passwordPlain, 10);
-
-        // 3. TẠO USER MỚI
-        await User.create({ 
-            username: "test_thao", 
-            password: hashedPassword, 
-            fullName: "Thảo Test" 
-        });
-        console.log("✅ Đã tạo user 'test_thao' với mật khẩu đã băm!");
-
-        // 4. CHÈN DỮ LIỆU MỚI
+        // Nạp dữ liệu mới
         await Category.insertMany(sampleCategories);
         await GameConfig.insertMany(sampleGameConfigs);
         await Question.insertMany(sampleQuestions);
         
         console.log("🎉 Nạp dữ liệu mẫu thành công!");
         
-        await mongoose.connection.close();
-        process.exit(); // Dòng này giúp thoát script hoàn toàn sau khi chạy xong
+        await mongoose.disconnect();
+        process.exit(0);
     } catch (error) {
-        console.error("❌ Lỗi nạp dữ liệu:", error.message);
+        console.error("❌ Lỗi nghiêm trọng:", error);
+        process.exit(1); 
     }
 };
+
 seedDB();
 export default sampleQuestions;

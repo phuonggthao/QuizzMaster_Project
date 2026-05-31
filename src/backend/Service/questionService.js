@@ -5,31 +5,45 @@ const questionRepo = new BaseRepository(Question);
 
 export const addQuestion = async (data) => {
     try {
-        // 1. Chuẩn hóa dữ liệu đầu vào (phòng trường hợp Client gửi dư thừa)
+        // 1. Xử lý options: Đảm bảo luôn là mảng (Array)
+        let parsedOptions = [];
+        try {
+            parsedOptions = typeof data.options === 'string' 
+                ? JSON.parse(data.options) 
+                : (Array.isArray(data.options) ? data.options : []);
+        } catch (e) {
+            console.error("❌ Lỗi parse options:", e);
+        }
+
+        // 2. Chuẩn hóa dữ liệu với cấu trúc ảnh từ Cloudinary
         const questionData = {
             gameType: data.gameType,
             category: data.category,
             questionText: data.questionText,
             image: {
-                name: data.imageName || null,
-                url: data.imageUrl || null
+                name: data.imageName || 'question_image',
+                url: data.imageUrl || null // Nhận URL từ Controller gửi qua
             },
-            options: Array.isArray(data.options) ? data.options : JSON.parse(data.options || "[]"),
+            options: parsedOptions,
             correctAnswer: data.correctAnswer,
             difficulty: data.difficulty || 'Easy',
             pairs: data.pairs || [],
             rewards: data.rewards || []
         };
 
-        // 2. Validate dữ liệu tối thiểu trước khi lưu
+        // 3. Log kiểm tra dữ liệu trước khi lưu vào Database
+        console.log("📥 Dữ liệu chuẩn bị lưu vào MongoDB:", JSON.stringify(questionData, null, 2));
+
+        // 4. Validate bắt buộc
         if (!questionData.gameType || !questionData.correctAnswer) {
-            throw new Error("Dữ liệu thiếu: gameType và correctAnswer là bắt buộc!");
+            throw new Error("Thiếu trường bắt buộc: gameType hoặc correctAnswer!");
         }
 
-        // 3. Sử dụng repo để tạo
+        // 5. Lưu vào database
         return await questionRepo.create(questionData);
+
     } catch (error) {
         console.error("❌ Lỗi tại Question Service:", error.message);
-        throw error; // Ném lỗi ra Controller để Controller gửi response lỗi về cho App
+        throw error;
     }
 };

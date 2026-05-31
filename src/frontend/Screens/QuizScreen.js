@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
     View, Text, ActivityIndicator, StyleSheet,
-    TouchableOpacity, TextInput, Alert, StatusBar
+    TouchableOpacity, TextInput, Alert, StatusBar, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuiz } from '../Hooks/useQuiz';
@@ -22,7 +22,18 @@ export default function QuizScreen({ route, navigation }) {
     const [answered, setAnswered] = useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [timeLeft, setTimeLeft] = useState(10);
+    const [scrambledWord, setScrambledWord] = useState("");
     const timerRef = useRef(null);
+
+    const scramble = (word) => {
+        if (!word) return "";
+        let arr = word.toUpperCase().split('');
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr.join('');
+    };
 
     useEffect(() => {
         // Kiểm tra xem đã có token chưa
@@ -34,6 +45,12 @@ export default function QuizScreen({ route, navigation }) {
         checkAuth();
         return () => clearInterval(timerRef.current);
     }, []);
+
+    useEffect(() => {
+        if (questions[currentIndex] && gameType === 'WordScramble') {
+            setScrambledWord(scramble(questions[currentIndex].correctAnswer));
+        }
+    }, [currentIndex, questions, gameType]);
 
     useEffect(() => {
         if (questions.length > 0 && !loading) {
@@ -114,6 +131,7 @@ export default function QuizScreen({ route, navigation }) {
     };
 
     const renderGameUI = () => {
+       console.log("DEBUG: Dữ liệu câu hỏi hiện tại:", JSON.stringify(currentQuestion, null, 2)); 
         switch (gameType) {
             case 'Quiz':
             case 'TrueFalse':
@@ -122,17 +140,21 @@ export default function QuizScreen({ route, navigation }) {
                         <View style={styles.questionCard}>
                             <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
                         </View>
-                        <View style={styles.optionsGrid}>
-                            {currentQuestion.options?.map((item, index) => (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                            {['True', 'False'].map((item) => (
                                 <TouchableOpacity
-                                    key={index}
-                                    style={getOptionStyle(item, index)}
+                                    key={item}
+                                    style={[
+                                        styles.optionBtn, 
+                                        { width: '48%', backgroundColor: item === 'True' ? Colors.correct : Colors.wrong },
+                                        answered && (String(item).toLowerCase() !== String(currentQuestion.correctAnswer).toLowerCase() ? styles.optionDimmed : {})
+                                    ]}
                                     onPress={() => handleAnswer(item)}
-                                    activeOpacity={0.85}
                                     disabled={answered}
                                 >
-                                    <Text style={styles.optionShape}>{OPTION_SHAPES[index % 4]}</Text>
-                                    <Text style={styles.optionText}>{item}</Text>
+                                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
+                                        {item === 'True' ? 'ĐÚNG' : 'SAI'}
+                                    </Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -172,9 +194,10 @@ export default function QuizScreen({ route, navigation }) {
                         <View style={styles.questionCard}>
                             <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
                         </View>
-                        {currentQuestion.imageUrl ? (
-                            <Image source={{ uri: currentQuestion.imageUrl }} style={styles.quizImage} />
-                        ) : currentQuestion.imageName ? (
+                        // Thay currentQuestion.imageUrl thành currentQuestion.image?.url
+                            {currentQuestion.image?.url ? (
+                                <Image source={{ uri: currentQuestion.image.url }} style={styles.quizImage} />
+                            ) : currentQuestion.imageName ? (
                             <View style={styles.imagePlaceholder}>
                                 <Text style={styles.imagePlaceholderText}>🖼️ {currentQuestion.imageName}</Text>
                             </View>
@@ -193,26 +216,27 @@ export default function QuizScreen({ route, navigation }) {
                 );
 
             case 'WordScramble':
-                return (
-                    <View style={styles.uiContainer}>
-                        <View style={styles.questionCard}>
-                            <Text style={styles.scrambleLabel}>Sắp xếp lại từ này:</Text>
-                            <Text style={styles.scrambleWord}>{currentQuestion.questionText || 'EXOP'}</Text>
-                            <Text style={styles.scrambleHint}>Chủ đề: {currentQuestion.category}</Text>
-                        </View>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Nhập từ đúng..."
-                            placeholderTextColor="rgba(255,255,255,0.4)"
-                            value={textInput}
-                            onChangeText={setTextInput}
-                            autoCapitalize="characters"
-                        />
-                        <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(textInput)}>
-                            <Text style={styles.submitBtnText}>Kiểm tra →</Text>
-                        </TouchableOpacity>
-                    </View>
-                );
+    return (
+        <View style={styles.uiContainer}>
+            <View style={styles.questionCard}>
+                <Text style={styles.scrambleLabel}>Sắp xếp lại từ này:</Text>
+                {/* SỬA CHỖ NÀY: dùng scrambledWord thay vì questionText */}
+                <Text style={styles.scrambleWord}>{scrambledWord}</Text> 
+                <Text style={styles.scrambleHint}>Chủ đề: {currentQuestion.category}</Text>
+            </View>
+            <TextInput
+                style={styles.textInput}
+                placeholder="Nhập từ đúng..."
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={textInput}
+                onChangeText={setTextInput}
+                autoCapitalize="characters"
+            />
+            <TouchableOpacity style={styles.submitBtn} onPress={() => handleAnswer(textInput)}>
+                <Text style={styles.submitBtnText}>Kiểm tra →</Text>
+            </TouchableOpacity>
+        </View>
+    );
 
             default:
                 return (
