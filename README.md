@@ -21,14 +21,11 @@ ipconfig -> đổi lại ip trong config.js
  npm install expo react react-native react-native-paper @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs @react-navigation/stack @react-native-async-storage/async-storage @react-native-picker/picker expo-blur expo-status-bar react-native-safe-area-context react-native-screens react-native-vector-icons react-native-web react-dom
 
  npm install --save-dev @babel/core
- 
+
   khi nạp dữ liệu câu hỏi thì cd src -> cd backend -> node seed.js
 
-  tkadmin: test_thao
-  mk: 123
+  
 
-  tkuser: thao_thao
-  mk:12345
-
+  
 
   
