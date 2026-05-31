@@ -1,17 +1,21 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
     View, Text, ActivityIndicator, StyleSheet,
-    TouchableOpacity, TextInput, Alert, StatusBar, Image
+    TouchableOpacity, TextInput, Platform, Alert, StatusBar, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuiz } from '../Hooks/useQuiz';
 import { Colors } from '../Styles/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import BASE_URL from '../config';
 
 const OPTION_COLORS = [Colors.optionA, Colors.optionB, Colors.optionC, Colors.optionD];
 const OPTION_SHAPES = ['▲', '◆', '●', '■'];
 
 export default function QuizScreen({ route, navigation }) {
+    const [user, setUser] = useState(null);
+    
     const { gameType } = route.params || { gameType: 'Quiz' };
     const { questions, loading, error, fetchQuestions } = useQuiz(gameType);
 
@@ -34,6 +38,36 @@ export default function QuizScreen({ route, navigation }) {
         }
         return arr.join('');
     };
+    useFocusEffect(
+        useCallback(() => {
+            const fetchProfile = async () => {
+                try {
+        const token = await AsyncStorage.getItem('userToken');
+        const response = await fetch(`${BASE_URL}/auth/profile`, { // Gọi đúng endpoint lấy profile
+            method: 'GET', // Thường là GET
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+            }
+        });
+                    const data = await response.json();
+                    if (response.ok) {
+                        setUser(data.user);
+                    } else {
+                        Alert.alert("Lỗi", "Không thể tải thông tin hồ sơ.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            fetchProfile();
+            
+            // Cleanup function nếu cần
+            return () => {};
+        }, []) // Dependency array
+    );
 
     useEffect(() => {
         // Kiểm tra xem đã có token chưa
@@ -71,6 +105,22 @@ export default function QuizScreen({ route, navigation }) {
         }
         return () => clearInterval(timerRef.current);
     }, [currentIndex, questions, loading]);
+
+    const updateScoreOnServer = async (finalScore) => {
+    try {
+        const token = await AsyncStorage.getItem('userToken');
+        await fetch(`${BASE_URL}/auth/update-score`, { // Thay đường dẫn API theo server của bạn
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ score: score })
+        });
+    } catch (error) {
+        console.error("Lỗi cập nhật điểm:", error);
+    }
+};
 
     const handleTimeOut = () => {
         if (answered) return;
@@ -111,12 +161,26 @@ export default function QuizScreen({ route, navigation }) {
     };
 
     const nextQuestion = (currentScore) => {
-        if (currentIndex < questions.length - 1) {
-            setCurrentIndex(prev => prev + 1); setTextInput(''); setIsFlipped(false);
-        } else {
-            Alert.alert("🏁 Kết Thúc!", `Điểm: ${currentScore}`, [{ text: "Về trang chủ", onPress: () => navigation.replace('Home') }]);
-        }
-    };
+        console.log("DEBUG: Điểm gửi lên server là:", currentScore);
+
+    if (currentIndex < questions.length - 1) {
+        setCurrentIndex(prev => prev + 1); 
+        setTextInput(''); 
+        setIsFlipped(false);
+    } else {
+        // --- CHỖ NÀY ĐÂY ---
+        // Gọi hàm cập nhật điểm trước khi chuyển màn hình
+        updateScoreOnServer(
+            currentScore).then(() => {
+            Alert.alert("🏁 Kết Thúc!", `Điểm của bạn: ${currentScore}`, [
+                { 
+                    text: "Về trang chủ", 
+                    onPress: () => navigation.replace('Home') 
+                }
+            ]);
+        });
+    }
+};
 
 
 
@@ -134,32 +198,56 @@ export default function QuizScreen({ route, navigation }) {
        console.log("DEBUG: Dữ liệu câu hỏi hiện tại:", JSON.stringify(currentQuestion, null, 2)); 
         switch (gameType) {
             case 'Quiz':
-            case 'TrueFalse':
-                return (
-                    <View style={styles.uiContainer}>
-                        <View style={styles.questionCard}>
-                            <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-                            {['True', 'False'].map((item) => (
+            return (
+                <View style={styles.uiContainer}>
+                    <View style={styles.questionCard}>
+                        <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
+                    </View>
+
+                    {/* Container cha cho lưới 2x2 */}
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
+                        {currentQuestion.options && currentQuestion.options.map((option, index) => {
+                            // Mảng màu sắc cho 4 ô
+                            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A']; // Đỏ, Xanh ngọc, Xanh dương, Cam
+                            
+                            const isCorrect = String(option).toLowerCase() === String(currentQuestion.correctAnswer).toLowerCase();
+                            const isSelected = selectedAnswer === option;
+
+                            // Logic màu sắc: dùng màu cố định nếu chưa trả lời, 
+                            // dùng màu đúng/sai nếu đã trả lời
+                            let btnColor = colors[index % colors.length]; // Lấy màu theo index
+                            if (answered) {
+                                if (isCorrect) btnColor = '#2ECC71'; // Xanh lá nếu đúng
+                                else if (isSelected) btnColor = '#E74C3C'; // Đỏ nếu chọn sai
+                                else btnColor = '#BDC3C7'; // Xám nếu không chọn
+                            }
+
+                            return (
                                 <TouchableOpacity
-                                    key={item}
+                                    key={index}
                                     style={[
                                         styles.optionBtn, 
-                                        { width: '48%', backgroundColor: item === 'True' ? Colors.correct : Colors.wrong },
-                                        answered && (String(item).toLowerCase() !== String(currentQuestion.correctAnswer).toLowerCase() ? styles.optionDimmed : {})
+                                        { 
+                                            width: '48%', // Chia đôi màn hình cho 2 cột
+                                            aspectRatio: 2, // Tạo hình chữ nhật cân đối
+                                            backgroundColor: btnColor,
+                                            justifyContent: 'center',
+                                            alignItems: 'center'
+                                        }
                                     ]}
-                                    onPress={() => handleAnswer(item)}
+                                    onPress={() => handleAnswer(option)}
                                     disabled={answered}
                                 >
-                                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-                                        {item === 'True' ? 'ĐÚNG' : 'SAI'}
+                                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
+                                        {option}
                                     </Text>
                                 </TouchableOpacity>
-                            ))}
-                        </View>
+                            );
+                        })}
                     </View>
-                );
+                </View>
+            );
+
 
             case 'Flashcard':
                 return (
@@ -257,13 +345,14 @@ export default function QuizScreen({ route, navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+            {/* StatusBar cũng nên thiết lập translucent để hiển thị đúng */}
+        <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} translucent={true} />
 
-            {/* Progress bar */}
-            <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-            </View>
+        {/* Progress bar */}
+        <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+        </View>
 
             {/* Header */}
             <View style={styles.header}>
@@ -293,6 +382,12 @@ export default function QuizScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+    container: { 
+        flex: 1, 
+        backgroundColor: Colors.bgDark,
+        // Ép padding nếu là Android thì lấy chiều cao StatusBar, iOS thì để 20-40 tùy đời máy
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
+    },
     container: { flex: 1, backgroundColor: Colors.bgDark },
     center: {
         flex: 1, backgroundColor: Colors.bgDark,
@@ -316,6 +411,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 14,
+        marginTop: Platform.OS === 'android' ? 10 : 0,
     },
     headerLeft: {},
     questionCount: { fontSize: 18, fontWeight: '900', color: Colors.textLight },

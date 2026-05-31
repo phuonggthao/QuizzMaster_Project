@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.78;
 const CARD_GAP = 16;
-const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 3 ;
 
 const GAMES_LIST = [
     {
@@ -81,6 +81,8 @@ export default function HomeScreen({ navigation }) {
     const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
     const renderCard = ({ item, index }) => {
+
+        const cardColor = Colors.cardTones[index % Colors.cardTones.length];
         const inputRange = [
             (index - 1) * (CARD_WIDTH + CARD_GAP),
             index * (CARD_WIDTH + CARD_GAP),
@@ -101,11 +103,16 @@ export default function HomeScreen({ navigation }) {
 
         return (
             <Animated.View style={[styles.cardWrapper, { transform: [{ scale }], opacity }]}>
-                <TouchableOpacity
-                    style={[styles.card, { backgroundColor: item.color }]}
-                    onPress={() => handleSelectGame(item.type)}
-                    activeOpacity={0.9}
-                >
+            
+            <TouchableOpacity
+            
+                // Dùng cardColor vừa lấy ở trên
+                style={[styles.card, { backgroundColor: cardColor }]}
+                onPress={() => handleSelectGame(item.type)}
+                activeOpacity={0.9}
+
+                
+            >
                     {/* Số thứ tự */}
                     <View style={styles.cardNumber}>
                         <Text style={styles.cardNumberText}>{index + 1}/{GAMES_LIST.length}</Text>
@@ -129,12 +136,57 @@ export default function HomeScreen({ navigation }) {
                         activeOpacity={0.85}
                     >
                         <Text style={styles.playBtnText}>Chơi ngay  ▶</Text>
-                    </TouchableOpacity>
+                    {/* Lớp gương phản chiếu (Thêm cái này vào) */}
+                    <View style={{
+                        position: 'absolute',
+                        top: -50,
+                        left: -50,
+                        width: CARD_WIDTH,
+                        height: CARD_WIDTH,
+                        borderRadius: CARD_WIDTH / 2,
+                        backgroundColor: 'rgba(166, 158, 158, 0.28)',
+                        transform: [{ scale: 1.5 }],
+                    }} />
 
+                    
+                    
+                    </TouchableOpacity>
+                    
+                    {/* Lớp gương phản chiếu (Thêm cái này vào) */}
+                    <View style={{
+                        position: 'absolute',
+                        top: -50,
+                        left: -50,
+                        width: CARD_WIDTH,
+                        height: CARD_WIDTH,
+                        borderRadius: CARD_WIDTH / 2,
+                        backgroundColor: 'rgba(23, 181, 34, 0.1)',
+                        transform: [{ scale: 1.5 }],
+                    }} />
+                   
+                        {/* VIỀN SÁNG PHÍA TRÊN TẠO CẢM GIÁC CHIỀU CAO (3D) */}
+                        <View style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '50%',
+                            borderTopLeftRadius: 30,
+                            borderTopRightRadius: 30,
+                            borderTopWidth: 2,
+                            borderColor: 'rgba(88, 200, 170, 0.3)',
+                        }} />
+                        
+                        {/* Nội dung bên trong */}
+                        {/* ... */}
+                   
                     {/* Decoration circles */}
                     <View style={[styles.decorCircle, styles.decorCircle1]} />
                     <View style={[styles.decorCircle, styles.decorCircle2]} />
+
+                    
                 </TouchableOpacity>
+                
             </Animated.View>
         );
     };
@@ -145,8 +197,8 @@ export default function HomeScreen({ navigation }) {
 
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Chọn Trò Chơi 🚀</Text>
-                <Text style={styles.headerSub}>Vuốt ngang để xem tất cả 10 trò chơi</Text>
+                <Text style={styles.headerTitle}>Khám Phá Tri Thức</Text>
+                <Text style={styles.headerSub}>Thử thách bản thân qua từng câu hỏi thú vị!</Text>
             </View>
 
             {/* Horizontal Pager */}
@@ -160,7 +212,7 @@ export default function HomeScreen({ navigation }) {
                 snapToInterval={CARD_WIDTH + CARD_GAP}
                 snapToAlignment="center"
                 decelerationRate="fast"
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={{ paddingHorizontal: SIDE_PADDING,}}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                     { useNativeDriver: true }
@@ -210,17 +262,25 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.bgDark,
     },
     header: {
-        paddingHorizontal: 24,
-        paddingTop: 20,
-        paddingBottom: 24,
-    },
-    headerTitle: {
-        fontSize: 28, fontWeight: '900',
-        color: Colors.textLight, letterSpacing: 0.5,
-    },
-    headerSub: {
-        fontSize: 14, color: Colors.textMuted, marginTop: 4,
-    },
+    paddingHorizontal: 24,
+    paddingTop: 30,
+    paddingBottom: 20,
+    alignItems: 'center', // Thêm dòng này để căn giữa
+    justifyContent: 'center',
+},
+headerTitle: {
+    fontSize: 28, 
+    fontWeight: '900',
+    color: Colors.textLight, 
+    letterSpacing: 0.5,
+    textAlign: 'center', // Đảm bảo chữ nằm giữa
+},
+headerSub: {
+    fontSize: 14, 
+    color: Colors.textMuted, 
+    marginTop: 8,
+    textAlign: 'center', // Đảm bảo chữ nằm giữa
+},
 
     // List
     listContent: {
@@ -229,27 +289,36 @@ const styles = StyleSheet.create({
     },
     cardWrapper: {
         width: CARD_WIDTH,
-        marginRight: CARD_GAP,
+       marginHorizontal: CARD_GAP /3,
     },
+    //card
     card: {
-        width: CARD_WIDTH,
-        height: SCREEN_HEIGHT * 0.48,
-        borderRadius: 28,
-        padding: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-        elevation: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
+    width: CARD_WIDTH,
+    height: SCREEN_HEIGHT * 0.48,
+    borderRadius: 32,
+    padding: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    
+    // Hiệu ứng kính (Glassmorphism)
+    backgroundColor: 'rgba(169, 58, 114, 0.62)', // Trong suốt nhẹ
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4', // Viền sáng bóng
+    //borderBottomColor: 'rgba(182, 166, 166, 0.87)', // Viền dưới tối
+    
+    // Đổ bóng sâu
+    elevation: 20,
+    shadowColor: '#c91ca3',
+    shadowOffset: { width: 20, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
     },
 
     // Card number badge
     cardNumber: {
         position: 'absolute', top: 18, right: 18,
-        backgroundColor: 'rgba(0,0,0,0.25)',
+        backgroundColor: 'rgba(227, 97, 97, 0.25)',
         paddingHorizontal: 10, paddingVertical: 4,
         borderRadius: 20,
     },
@@ -269,11 +338,11 @@ const styles = StyleSheet.create({
     // Text
     cardTitle: {
         fontSize: 26, fontWeight: '900',
-        color: '#fff', textAlign: 'center',
+        color: '#ffffff', textAlign: 'center',
         marginBottom: 10, letterSpacing: 0.3,
     },
     cardDesc: {
-        fontSize: 14, color: 'rgba(255,255,255,0.8)',
+        fontSize: 14, color: 'rgb(255, 255, 255)',
         textAlign: 'center', lineHeight: 20,
         marginBottom: 28, paddingHorizontal: 8,
     },
@@ -293,7 +362,7 @@ const styles = StyleSheet.create({
     decorCircle: {
         position: 'absolute',
         borderRadius: 999,
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(221, 125, 200, 0.3)',
     },
     decorCircle1: {
         width: 180, height: 180,
@@ -314,7 +383,7 @@ const styles = StyleSheet.create({
     },
     dot: {
         width: 8, height: 8, borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.25)',
+        backgroundColor: 'rgba(251, 0, 13, 0.79)',
     },
     dotActive: {
         width: 24, height: 8, borderRadius: 4,
