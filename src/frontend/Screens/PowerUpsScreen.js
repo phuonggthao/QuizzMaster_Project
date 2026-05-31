@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, ScrollView, Switch, Alert,
+  PanResponder, LayoutAnimation, UIManager, Platform,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+
+// Bật LayoutAnimation trên Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const POWER_ITEMS = [
   {
@@ -28,19 +34,139 @@ const POWER_ITEMS = [
 
 const MEME_SETS = [
   { id: '1', emoji: '🐶', title: 'Động vật hài hước', badge: 'Phổ biến nhất' },
-  { id: '2', emoji: '🌌', title: 'Khám phá vũ trụ',   badge: '24 hình ảnh' },
+  { id: '2', emoji: '🌌', title: 'Khám phá vũ trụ', badge: '24 hình ảnh' },
 ];
 
 const MUSIC_OPTIONS = ['Lofi Học Tập', 'Nhạc Cổ Điển', 'Nhạc Thiên Nhiên', 'Không có nhạc'];
 
+// ─── Slider component dùng PanResponder ───────────────────────────────────────
+function VolumeSlider({ value, onChange, primaryColor, trackColor }) {
+  const trackWidth = useRef(0);
+  const currentValue = useRef(value);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        // Tính vị trí từ điểm chạm ban đầu
+        if (trackWidth.current > 0) {
+          const locationX = evt.nativeEvent.locationX;
+          const newVal = Math.round(Math.min(100, Math.max(0, (locationX / trackWidth.current) * 100)));
+          currentValue.current = newVal;
+          onChange(newVal);
+        }
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (trackWidth.current > 0) {
+          const locationX = evt.nativeEvent.locationX;
+          const newVal = Math.round(Math.min(100, Math.max(0, (locationX / trackWidth.current) * 100)));
+          currentValue.current = newVal;
+          onChange(newVal);
+        }
+      },
+    })
+  ).current;
+
+  const fillPercent = Math.min(100, Math.max(0, value));
+
+  return (
+    <View style={sliderStyles.wrapper}>
+      <Text style={sliderStyles.icon}>🔈</Text>
+      <View
+        style={[sliderStyles.track, { backgroundColor: trackColor }]}
+        onLayout={(e) => { trackWidth.current = e.nativeEvent.layout.width; }}
+        {...panResponder.panHandlers}
+      >
+        {/* Fill */}
+        <View
+          style={[
+            sliderStyles.fill,
+            { width: `${fillPercent}%`, backgroundColor: primaryColor },
+          ]}
+        />
+        {/* Thumb — dùng left tính bằng số thực thay vì % string */}
+        <View
+          style={[
+            sliderStyles.thumbContainer,
+            { left: `${fillPercent}%` },
+          ]}
+        >
+          <View style={[sliderStyles.thumb, { backgroundColor: primaryColor }]} />
+        </View>
+      </View>
+      <Text style={sliderStyles.icon}>🔊</Text>
+      <Text style={[sliderStyles.valueText, { color: primaryColor }]}>{fillPercent}%</Text>
+    </View>
+  );
+}
+
+const sliderStyles = StyleSheet.create({
+  wrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 10,
+  },
+  icon: { fontSize: 18 },
+  track: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  fill: {
+    height: 8,
+    borderRadius: 4,
+  },
+  // Container căn giữa thumb theo chiều dọc, dùng translateX để offset đúng
+  thumbContainer: {
+    position: 'absolute',
+    top: '50%',
+    width: 0,
+    alignItems: 'center',
+    // translateY để căn giữa thumb (thumb cao 20px → -10)
+    transform: [{ translateY: -10 }],
+  },
+  thumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  valueText: {
+    fontSize: 12,
+    fontWeight: '700',
+    minWidth: 36,
+    textAlign: 'right',
+  },
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function PowerUpsScreen({ navigation }) {
-  const { isDark, toggleTheme, theme: C } = useTheme();
+  const {
+    isDark, toggleTheme, theme: C,
+    volume, setVolume,
+    selectedMusic, setSelectedMusic,
+    fireworks, setFireworks,
+    musicEnabled, toggleMusic,
+  } = useTheme();
 
   const [masterEnabled, setMasterEnabled] = useState(true);
-  const [fireworks, setFireworks] = useState(true);
-  const [volume, setVolume] = useState(60);
-  const [selectedMusic, setSelectedMusic] = useState('Lofi Học Tập');
   const [activeMeme, setActiveMeme] = useState('1');
+
+  const handleSave = () => {
+    // Settings đã được auto-save qua ThemeContext → AsyncStorage
+    Alert.alert('✅ Đã lưu', 'Cài đặt của bạn đã được lưu thành công.', [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
@@ -96,7 +222,9 @@ export default function PowerUpsScreen({ navigation }) {
                 <TouchableOpacity
                   style={[styles.setupBtn, { backgroundColor: C.primaryLight }]}
                   activeOpacity={0.8}
-                  onPress={() => Alert.alert(item.title, `${item.desc}\n\nTính năng thiết lập đang được phát triển.`)}
+                  onPress={() =>
+                    Alert.alert(item.title, `${item.desc}\n\nTính năng thiết lập đang được phát triển.`)
+                  }
                 >
                   <Text style={[styles.setupBtnText, { color: C.primary }]}>Thiết lập</Text>
                 </TouchableOpacity>
@@ -138,7 +266,9 @@ export default function PowerUpsScreen({ navigation }) {
         <TouchableOpacity
           style={[styles.addMemeBtn, { borderColor: C.border, backgroundColor: C.bgCard }]}
           activeOpacity={0.8}
-          onPress={() => Alert.alert('Thêm Meme', 'Tính năng thêm bộ Meme mới đang được phát triển.')}
+          onPress={() =>
+            Alert.alert('Thêm Meme', 'Tính năng thêm bộ Meme mới đang được phát triển.')
+          }
         >
           <Text style={[styles.addMemeBtnText, { color: C.textMuted }]}>+ Thêm bộ Meme mới</Text>
         </TouchableOpacity>
@@ -147,16 +277,36 @@ export default function PowerUpsScreen({ navigation }) {
         <Text style={[styles.sectionTitle2, { color: C.textPrimary }]}>🎵 Âm nhạc & Giao diện</Text>
 
         <View style={[styles.card, { backgroundColor: C.bgCard, borderColor: C.border }]}>
-          {/* Music dropdown */}
+
+          {/* Music master toggle */}
           <View style={styles.settingRow}>
+            <View>
+              <Text style={[styles.settingLabel, { color: C.textPrimary }]}>Nhạc nền</Text>
+              <Text style={[styles.settingSubLabel, { color: C.textMuted }]}>
+                {musicEnabled ? '🎵 Đang phát' : '🔇 Đã tắt'}
+              </Text>
+            </View>
+            <Switch
+              value={musicEnabled}
+              onValueChange={toggleMusic}
+              trackColor={{ false: C.border, true: C.primaryLight }}
+              thumbColor={musicEnabled ? C.primary : C.textMuted}
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: C.border }]} />
+
+          {/* Music dropdown */}
+          <View style={[styles.settingRow, !musicEnabled && { opacity: 0.4 }]}>
             <Text style={[styles.settingLabel, { color: C.textPrimary }]}>Nhạc nền buổi học</Text>
             <TouchableOpacity
               style={[styles.dropdown, { backgroundColor: C.bgApp, borderColor: C.border }]}
               activeOpacity={0.8}
+              disabled={!musicEnabled}
               onPress={() =>
                 Alert.alert('Nhạc nền', 'Chọn nhạc nền', [
                   ...MUSIC_OPTIONS.map((opt) => ({
-                    text: opt,
+                    text: opt === selectedMusic ? `✓ ${opt}` : opt,
                     onPress: () => setSelectedMusic(opt),
                   })),
                   { text: 'Huỷ', style: 'cancel' },
@@ -170,22 +320,22 @@ export default function PowerUpsScreen({ navigation }) {
 
           <View style={[styles.divider, { backgroundColor: C.border }]} />
 
-          {/* Volume slider */}
-          <View style={styles.settingRow}>
+          {/* Volume slider — có thể kéo được */}
+          <View style={[styles.settingRow, { paddingBottom: 8 }, !musicEnabled && { opacity: 0.4 }]}>
             <Text style={[styles.settingLabel, { color: C.textPrimary }]}>Âm lượng</Text>
           </View>
-          <View style={styles.volumeRow}>
-            <Text style={styles.volumeIcon}>🔈</Text>
-            <View style={[styles.sliderTrack, { backgroundColor: C.border }]}>
-              <View style={[styles.sliderFill, { width: `${volume}%`, backgroundColor: C.primary }]} />
-              <View style={[styles.sliderThumb, { left: `${volume}%`, backgroundColor: C.primary }]} />
-            </View>
-            <Text style={styles.volumeIcon}>🔊</Text>
+          <View style={!musicEnabled && { opacity: 0.4 }}>
+            <VolumeSlider
+              value={volume}
+              onChange={musicEnabled ? setVolume : () => {}}
+              primaryColor={C.primary}
+              trackColor={C.border}
+            />
           </View>
 
           <View style={[styles.divider, { backgroundColor: C.border }]} />
 
-          {/* Dark mode toggle — kết nối vào ThemeContext */}
+          {/* Dark mode toggle */}
           <View style={styles.settingRow}>
             <View>
               <Text style={[styles.settingLabel, { color: C.textPrimary }]}>Chế độ hiển thị</Text>
@@ -208,7 +358,7 @@ export default function PowerUpsScreen({ navigation }) {
             <View>
               <Text style={[styles.settingLabel, { color: C.textPrimary }]}>Hiệu ứng chúc mừng</Text>
               <Text style={[styles.settingSubLabel, { color: C.textMuted }]}>
-                {fireworks ? 'Pháo hoa & Confetti ON' : 'Đã tắt'}
+                {fireworks ? '🎆 Pháo hoa & Confetti ON' : '🚫 Đã tắt'}
               </Text>
             </View>
             <Switch
@@ -219,6 +369,15 @@ export default function PowerUpsScreen({ navigation }) {
             />
           </View>
         </View>
+
+        {/* Note về nhạc nền */}
+        <View style={[styles.noteBox, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+          <Text style={[styles.noteText, { color: C.textMuted }]}>
+            💡 Nhạc phát từ Internet Archive (public domain). Cần kết nối mạng để stream.
+            Nhạc sẽ tiếp tục phát khi bạn chuyển màn hình trong app.
+          </Text>
+        </View>
+
       </ScrollView>
 
       {/* Footer buttons */}
@@ -232,10 +391,10 @@ export default function PowerUpsScreen({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.saveBtn, { backgroundColor: C.primary }]}
-          onPress={() => navigation.goBack()}
+          onPress={handleSave}
           activeOpacity={0.88}
         >
-          <Text style={styles.saveBtnText}>Lưu cài đặt</Text>
+          <Text style={styles.saveBtnText}>💾 Lưu cài đặt</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -374,34 +533,14 @@ const styles = StyleSheet.create({
   dropdownText: { fontSize: 13, fontWeight: '600' },
   dropdownArrow: { fontSize: 12 },
 
-  volumeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 10,
+  noteBox: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
   },
-  volumeIcon: { fontSize: 18 },
-  sliderTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  sliderFill: {
-    height: 6,
-    borderRadius: 3,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    top: -6,
-    marginLeft: -9,
-    elevation: 2,
-  },
+  noteText: { fontSize: 12, lineHeight: 18 },
 
   footer: {
     flexDirection: 'row',
