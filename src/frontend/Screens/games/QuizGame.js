@@ -7,16 +7,25 @@ const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 /**
  * Props:
- *  - question     : object câu hỏi hiện tại
- *  - answered     : boolean đã trả lời chưa
- *  - selectedAnswer: giá trị đã chọn
- *  - onAnswer(item): callback khi chọn đáp án
+ *  - question          : object câu hỏi hiện tại
+ *  - answered          : boolean đã trả lời chưa
+ *  - selectedAnswer    : giá trị đã chọn
+ *  - onAnswer(item)    : callback khi chọn đáp án
+ *  - eliminatedOptions : mảng các đáp án đã bị loại bởi Cây bút thần (mặc định [])
  */
-export default function QuizGame({ question, answered, selectedAnswer, onAnswer }) {
+export default function QuizGame({ question, answered, selectedAnswer, onAnswer, eliminatedOptions = [] }) {
   const { theme: C } = useTheme();
 
   const options = question?.options || [];
-  const rows = [options.slice(0, 2), options.slice(2, 4)];
+
+  // Lọc ra các đáp án chưa bị loại
+  const visibleOptions = options.filter((opt) => !eliminatedOptions.includes(opt));
+
+  // Luôn hiển thị dạng lưới 2 cột, padding nếu lẻ
+  const rows = [];
+  for (let i = 0; i < visibleOptions.length; i += 2) {
+    rows.push(visibleOptions.slice(i, i + 2));
+  }
 
   const getOptionStyle = (item) => {
     if (!answered) return [styles.optionBtn, { backgroundColor: C.bgCard, borderColor: C.border }];
@@ -38,15 +47,27 @@ export default function QuizGame({ question, answered, selectedAnswer, onAnswer 
     return [styles.optionLabel, { backgroundColor: C.primaryLight }];
   };
 
+  // Lấy index gốc để giữ nhãn A/B/C/D đúng
+  const getOriginalIndex = (item) => options.indexOf(item);
+
   return (
     <View style={styles.grid}>
+      {/* Hiển thị badge nếu đang dùng Cây bút thần */}
+      {eliminatedOptions.length > 0 && (
+        <View style={[styles.eliminateBadge, { backgroundColor: C.primaryLight, borderColor: C.primary }]}>
+          <Text style={[styles.eliminateBadgeText, { color: C.primary }]}>
+            ✏ Cây bút thần: đã loại {eliminatedOptions.length} đáp án sai
+          </Text>
+        </View>
+      )}
+
       {rows.map((row, rowIdx) => (
         <View key={rowIdx} style={styles.row}>
-          {row.map((item, colIdx) => {
-            const idx = rowIdx * 2 + colIdx;
+          {row.map((item) => {
+            const origIdx = getOriginalIndex(item);
             return (
               <TouchableOpacity
-                key={idx}
+                key={origIdx}
                 style={getOptionStyle(item)}
                 onPress={() => onAnswer(item)}
                 activeOpacity={0.85}
@@ -54,7 +75,7 @@ export default function QuizGame({ question, answered, selectedAnswer, onAnswer 
               >
                 <View style={getLabelStyle(item)}>
                   <Text style={[styles.labelText, { color: C.primary }]}>
-                    {OPTION_LABELS[idx]}
+                    {OPTION_LABELS[origIdx]}
                   </Text>
                 </View>
                 <Text style={[styles.optionText, { color: C.textPrimary }]} numberOfLines={2}>
@@ -63,6 +84,8 @@ export default function QuizGame({ question, answered, selectedAnswer, onAnswer 
               </TouchableOpacity>
             );
           })}
+          {/* Nếu row chỉ có 1 item, thêm placeholder để giữ layout */}
+          {row.length === 1 && <View style={styles.optionPlaceholder} />}
         </View>
       ))}
     </View>
@@ -81,6 +104,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 3,
   },
+  optionPlaceholder: { flex: 1 },
   optionCorrect: { backgroundColor: '#F0FDF4' },
   optionWrong: { backgroundColor: '#FEF2F2' },
   optionDimmed: { opacity: 0.45 },
@@ -90,4 +114,12 @@ const styles = StyleSheet.create({
   },
   labelText: { fontSize: 12, fontWeight: '900' },
   optionText: { flex: 1, fontSize: 13, fontWeight: '700' },
+  eliminateBadge: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 4,
+  },
+  eliminateBadgeText: { fontSize: 12, fontWeight: '700' },
 });

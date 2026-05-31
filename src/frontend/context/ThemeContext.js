@@ -8,6 +8,13 @@ const ThemeContext = createContext();
 
 const STORAGE_KEY = '@quizmaster_settings';
 
+// Số lượng mặc định mỗi power-up mỗi lượt chơi
+export const DEFAULT_POWER_UP_COUNTS = {
+  doublePoints: 2,  // Nhân đôi điểm
+  freeze: 1,        // Đóng băng
+  eliminate: 1,     // Cây bút thần
+};
+
 export function ThemeProvider({ children }) {
   const [isDark, setIsDark] = useState(false);
   const [volume, setVolumeState] = useState(60);
@@ -15,6 +22,10 @@ export function ThemeProvider({ children }) {
   const [fireworks, setFireworks] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
+
+  // Power-ups settings
+  const [powerUpsEnabled, setPowerUpsEnabled] = useState(true);
+  const [powerUpCounts, setPowerUpCounts] = useState({ ...DEFAULT_POWER_UP_COUNTS });
 
   const appState = useRef(AppState.currentState);
 
@@ -30,6 +41,8 @@ export function ThemeProvider({ children }) {
           if (saved.selectedMusic) setSelectedMusicState(saved.selectedMusic);
           if (saved.fireworks !== undefined) setFireworks(saved.fireworks);
           if (saved.musicEnabled !== undefined) setMusicEnabled(saved.musicEnabled);
+          if (saved.powerUpsEnabled !== undefined) setPowerUpsEnabled(saved.powerUpsEnabled);
+          if (saved.powerUpCounts) setPowerUpCounts({ ...DEFAULT_POWER_UP_COUNTS, ...saved.powerUpCounts });
         }
       } catch (e) {
         console.warn('Không thể tải cài đặt:', e);
@@ -47,14 +60,14 @@ export function ThemeProvider({ children }) {
       try {
         await AsyncStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({ isDark, volume, selectedMusic, fireworks, musicEnabled })
+          JSON.stringify({ isDark, volume, selectedMusic, fireworks, musicEnabled, powerUpsEnabled, powerUpCounts })
         );
       } catch (e) {
         console.warn('Không thể lưu cài đặt:', e);
       }
     };
     save();
-  }, [isDark, volume, selectedMusic, fireworks, musicEnabled, settingsLoaded]);
+  }, [isDark, volume, selectedMusic, fireworks, musicEnabled, powerUpsEnabled, powerUpCounts, settingsLoaded]);
 
   // ── Bắt đầu phát nhạc sau khi settings load xong ─────────────────────────
   useEffect(() => {
@@ -119,6 +132,19 @@ export function ThemeProvider({ children }) {
 
   const toggleTheme = () => setIsDark((prev) => !prev);
 
+  // Reset power-up counts về mặc định (gọi khi bắt đầu game mới)
+  const resetPowerUps = () => {
+    setPowerUpCounts({ ...DEFAULT_POWER_UP_COUNTS });
+  };
+
+  // Dùng 1 power-up, trả về false nếu hết
+  const usePowerUp = (type) => {
+    if (!powerUpsEnabled) return false;
+    if ((powerUpCounts[type] ?? 0) <= 0) return false;
+    setPowerUpCounts((prev) => ({ ...prev, [type]: prev[type] - 1 }));
+    return true;
+  };
+
   const theme = isDark ? DarkColors : LightColors;
 
   return (
@@ -135,6 +161,13 @@ export function ThemeProvider({ children }) {
         setFireworks,
         musicEnabled,
         toggleMusic,
+        powerUpsEnabled,
+        setPowerUpsEnabled,
+        powerUpCounts,
+        setPowerUpCounts,
+        resetPowerUps,
+        usePowerUp,
+        DEFAULT_POWER_UP_COUNTS,
       }}
     >
       {children}

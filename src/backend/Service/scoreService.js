@@ -58,16 +58,31 @@ export const getGlobalLeaderboard = async () => {
 
 /**
  * Lấy lịch sử chơi gần đây của một user (10 lượt gần nhất)
+ * username là string (không phải ObjectId)
  */
-export const getUserHistory = async (userId) => {
+export const getUserHistory = async (username) => {
     try {
-        const history = await Score.find({ userId })
+        const history = await Score.find({ username })
             .sort({ playedAt: -1 })
             .limit(10)
             .select('gameType points accuracy playedAt');
         return history;
     } catch (error) {
         throw new Error("Lỗi tải lịch sử chơi: " + error.message);
+    }
+};
+
+/**
+ * Lấy thống kê tổng hợp của một user
+ */
+export const getUserStats = async (username) => {
+    try {
+        const scores = await Score.find({ username });
+        const totalPlays = scores.length;
+        const totalPoints = scores.reduce((sum, s) => sum + (s.points || 0), 0);
+        return { totalPlays, totalPoints };
+    } catch (error) {
+        throw new Error("Lỗi tải thống kê user: " + error.message);
     }
 };
 
@@ -84,10 +99,9 @@ export const getReportStats = async () => {
 
         // Lịch sử 10 lượt gần nhất (gộp tất cả user)
         const recentPlays = await Score.find()
-            .populate('userId', 'fullName username')
             .sort({ playedAt: -1 })
             .limit(10)
-            .select('gameType points playedAt userId');
+            .select('gameType points playedAt username');
 
         return { totalPlays, totalUsers, avgScore, recentPlays };
     } catch (error) {

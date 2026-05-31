@@ -8,7 +8,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
 import { useQuiz } from '../Hooks/useQuiz';
 import { useTheme } from '../context/ThemeContext';
-
 import QuizGame from './games/QuizGame';
 import TrueFalseGame from './games/TrueFalseGame';
 import FlashcardGame from './games/FlashcardGame';
@@ -18,7 +17,7 @@ import FillInBlankGame from './games/FillInBlankGame';
 export default function QuizScreen({ route, navigation }) {
   const { gameType } = route.params || { gameType: 'Quiz' };
   const { questions, loading, error, fetchQuestions } = useQuiz(gameType);
-  const { isDark, theme: C } = useTheme();
+  const { isDark, theme: C, powerUpsEnabled, powerUpCounts } = useTheme();
 
   // ── State chung ─────────────────────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -41,8 +40,16 @@ export default function QuizScreen({ route, navigation }) {
 
   // ── Power-up state ───────────────────────────────────────────────────────────
   const [doublePoints, setDoublePoints] = useState(false);
-  const [powerUpCount, setPowerUpCount] = useState(2);
+  // Khởi tạo trực tiếp từ powerUpCounts — tránh render lần đầu hiện 0
+  const [sessionCounts, setSessionCounts] = useState(() => ({
+    doublePoints: powerUpCounts.doublePoints ?? 2,
+    freeze: powerUpCounts.freeze ?? 1,
+    eliminate: powerUpCounts.eliminate ?? 1,
+  }));
   const [frozen, setFrozen] = useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = useState([]);
+  // Lưu điểm thực tế đã cộng trong lượt này để hiển thị đúng trong feedback
+  const [lastPointsEarned, setLastPointsEarned] = useState(0);
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -83,15 +90,16 @@ export default function QuizScreen({ route, navigation }) {
 
   // ── Power-ups ────────────────────────────────────────────────────────────────
   const handleDoublePoints = () => {
-    if (answered || powerUpCount <= 0) return;
+    if (!powerUpsEnabled || answered || sessionCounts.doublePoints <= 0) return;
     setDoublePoints(true);
-    setPowerUpCount((prev) => prev - 1);
-    Alert.alert('⚡ Nhân đôi điểm!', 'Câu tiếp theo sẽ được tính 20 điểm nếu đúng!');
+    setSessionCounts((prev) => ({ ...prev, doublePoints: prev.doublePoints - 1 }));
+    Alert.alert('×2 Nhân đôi điểm!', 'Câu này sẽ được tính 20 điểm nếu đúng!');
   };
 
   const handleFreeze = () => {
-    if (answered || frozen) return;
+    if (!powerUpsEnabled || answered || frozen || sessionCounts.freeze <= 0) return;
     setFrozen(true);
+    setSessionCounts((prev) => ({ ...prev, freeze: prev.freeze - 1 }));
     clearInterval(timerRef.current);
     Alert.alert('❄ Đóng băng!', 'Đồng hồ dừng trong 5 giây!');
     setTimeout(() => {
@@ -107,6 +115,30 @@ export default function QuizScreen({ route, navigation }) {
         });
       }, 1000);
     }, 5000);
+  };
+
+  // Cây bút thần — loại 2 đáp án sai ngẫu nhiên
+  const handleEliminate = () => {
+    if (!powerUpsEnabled || answered || sessionCounts.eliminate <= 0) return;
+    if (gameType !== 'Quiz') {
+      Alert.alert('Cây bút thần', 'Vật phẩm này chỉ dùng được trong chế độ Quiz trắc nghiệm.');
+      return;
+    }
+    const options = currentQuestion?.options || [];
+    const correct = String(currentQuestion?.correctAnswer).trim().toLowerCase();
+    // Lấy các đáp án sai
+    const wrongOptions = options.filter(
+      (opt) => String(opt).trim().toLowerCase() !== correct && !eliminatedOptions.includes(opt)
+    );
+    if (wrongOptions.length < 2) {
+      Alert.alert('Cây bút thần', 'Không đủ đáp án sai để loại bỏ!');
+      return;
+    }
+    // Chọn ngẫu nhiên 2 đáp án sai để loại
+    const shuffled = wrongOptions.sort(() => Math.random() - 0.5);
+    const toEliminate = shuffled.slice(0, 2);
+    setEliminatedOptions(toEliminate);
+    setSessionCounts((prev) => ({ ...prev, eliminate: prev.eliminate - 1 }));
   };
 
   const handleSkip = () => {
@@ -150,9 +182,11 @@ export default function QuizScreen({ route, navigation }) {
     const newCombo = isCorrect ? combo + 1 : 0;
     const bonus = newCombo >= 3 ? 5 : 0;
     const basePoints = doublePoints ? 20 : 10;
-    const newScore = isCorrect ? score + basePoints + bonus : score;
+    const pointsEarned = isCorrect ? basePoints + bonus : 0;
+    const newScore = isCorrect ? score + pointsEarned : score;
 
-    setDoublePoints(false);
+    setLastPointsEarned(pointsEarned); // lưu để hiển thị đúng trong feedback
+    setDoublePoints(false);            // reset sau khi đã tính điểm
 
     if (isCorrect) {
       setScore(newScore);
@@ -173,6 +207,8 @@ export default function QuizScreen({ route, navigation }) {
     setTextInput('');
     setIsTimeOut(false);
     setIsCorrectThisTurn(false);
+    setEliminatedOptions([]);
+    setLastPointsEarned(0);
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
@@ -248,6 +284,7 @@ export default function QuizScreen({ route, navigation }) {
             answered={answered}
             selectedAnswer={selectedAnswer}
             onAnswer={handleAnswer}
+            eliminatedOptions={eliminatedOptions}
           />
         );
       case 'TrueFalse':
@@ -346,46 +383,55 @@ export default function QuizScreen({ route, navigation }) {
       <View style={styles.mainArea}>
         {/* Left: power-ups */}
         <View style={styles.powerUpsCol}>
+          {/* Nhân đôi điểm */}
           <TouchableOpacity
             style={[
               styles.powerBtn,
               { backgroundColor: C.bgCard, borderColor: C.border },
-              (answered || powerUpCount <= 0) && styles.powerBtnDisabled,
+              (!powerUpsEnabled || answered || sessionCounts.doublePoints <= 0) && styles.powerBtnDisabled,
             ]}
             onPress={handleDoublePoints}
             activeOpacity={0.8}
-            disabled={answered || powerUpCount <= 0}
+            disabled={!powerUpsEnabled || answered || sessionCounts.doublePoints <= 0}
           >
-            <Text style={[styles.powerBtnText, { color: C.primary }]}>+1</Text>
+            <Text style={[styles.powerBtnText, { color: C.primary }]}>×2</Text>
             <View style={[styles.powerBadgeRed, { backgroundColor: C.wrong }]}>
-              <Text style={styles.powerBadgeRedText}>{powerUpCount}</Text>
+              <Text style={styles.powerBadgeRedText}>{sessionCounts.doublePoints}</Text>
             </View>
           </TouchableOpacity>
 
+          {/* Đóng băng */}
           <TouchableOpacity
             style={[
               styles.powerBtn,
-              { backgroundColor: C.bgCard, borderColor: C.border },
-              (answered || frozen) && styles.powerBtnDisabled,
+              { backgroundColor: frozen ? '#DBEAFE' : C.bgCard, borderColor: frozen ? '#3B82F6' : C.border },
+              (!powerUpsEnabled || answered || frozen || sessionCounts.freeze <= 0) && styles.powerBtnDisabled,
             ]}
             onPress={handleFreeze}
             activeOpacity={0.8}
-            disabled={answered || frozen}
+            disabled={!powerUpsEnabled || answered || frozen || sessionCounts.freeze <= 0}
           >
             <Text style={styles.powerBtnIcon}>❄</Text>
+            <View style={[styles.powerBadgeRed, { backgroundColor: C.wrong }]}>
+              <Text style={styles.powerBadgeRedText}>{sessionCounts.freeze}</Text>
+            </View>
           </TouchableOpacity>
 
+          {/* Cây bút thần */}
           <TouchableOpacity
             style={[
               styles.powerBtn,
               { backgroundColor: C.bgCard, borderColor: C.border },
-              answered && styles.powerBtnDisabled,
+              (!powerUpsEnabled || answered || sessionCounts.eliminate <= 0 || gameType !== 'Quiz') && styles.powerBtnDisabled,
             ]}
-            onPress={handleSkip}
+            onPress={handleEliminate}
             activeOpacity={0.8}
-            disabled={answered}
+            disabled={!powerUpsEnabled || answered || sessionCounts.eliminate <= 0 || gameType !== 'Quiz'}
           >
-            <Text style={styles.powerBtnIcon}>⏩</Text>
+            <Text style={styles.powerBtnIcon}>✏</Text>
+            <View style={[styles.powerBadgeRed, { backgroundColor: C.wrong }]}>
+              <Text style={styles.powerBadgeRedText}>{sessionCounts.eliminate}</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -448,12 +494,12 @@ export default function QuizScreen({ route, navigation }) {
                 { color: isTimeOut ? '#D97706' : isCorrectThisTurn ? '#15803D' : '#B91C1C' },
               ]}
             >
-              {isTimeOut
+            {isTimeOut
                 ? `Đáp án đúng: ${currentQuestion.correctAnswer}`
                 : isCorrectThisTurn
                   ? combo >= 3
-                    ? `+${doublePoints ? 20 : 10} điểm (🔥 Combo x${combo})`
-                    : `+${doublePoints ? 20 : 10} điểm`
+                    ? `+${lastPointsEarned} điểm (🔥 Combo x${combo})`
+                    : `+${lastPointsEarned} điểm`
                   : `Đáp án đúng: ${currentQuestion.correctAnswer}`}
             </Text>
           </View>

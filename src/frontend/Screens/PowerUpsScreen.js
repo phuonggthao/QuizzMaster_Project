@@ -2,33 +2,37 @@ import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, ScrollView, Switch, Alert,
-  PanResponder, LayoutAnimation, UIManager, Platform,
+  PanResponder, Platform, UIManager,
 } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, DEFAULT_POWER_UP_COUNTS } from '../context/ThemeContext';
 
 // Bật LayoutAnimation trên Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Định nghĩa power-ups khớp với key trong ThemeContext
 const POWER_ITEMS = [
   {
-    id: '1',
-    emoji: '+2',
+    id: 'doublePoints',
+    emoji: '×2',
     title: 'Nhân đôi điểm',
-    desc: 'Nhân đôi điểm số cho câu trả lời đúng tiếp theo',
+    desc: 'Câu trả lời đúng tiếp theo được tính 20 điểm thay vì 10',
+    maxCount: 3,
   },
   {
-    id: '2',
+    id: 'freeze',
     emoji: '❄',
     title: 'Đóng băng',
     desc: 'Dừng đồng hồ đếm ngược trong 5 giây',
+    maxCount: 3,
   },
   {
-    id: '3',
+    id: 'eliminate',
     emoji: '✏',
     title: 'Cây bút thần',
-    desc: 'Loại bỏ 2 đáp án sai, chỉ còn 2 lựa chọn',
+    desc: 'Loại bỏ 2 đáp án sai, chỉ còn 2 lựa chọn (Quiz)',
+    maxCount: 3,
   },
 ];
 
@@ -156,16 +160,25 @@ export default function PowerUpsScreen({ navigation }) {
     selectedMusic, setSelectedMusic,
     fireworks, setFireworks,
     musicEnabled, toggleMusic,
+    powerUpsEnabled, setPowerUpsEnabled,
+    powerUpCounts, setPowerUpCounts,
   } = useTheme();
 
-  const [masterEnabled, setMasterEnabled] = useState(true);
   const [activeMeme, setActiveMeme] = useState('1');
 
   const handleSave = () => {
-    // Settings đã được auto-save qua ThemeContext → AsyncStorage
     Alert.alert('✅ Đã lưu', 'Cài đặt của bạn đã được lưu thành công.', [
       { text: 'OK', onPress: () => navigation.goBack() },
     ]);
+  };
+
+  // Tăng/giảm số lượng power-up
+  const adjustCount = (id, delta) => {
+    setPowerUpCounts((prev) => {
+      const max = POWER_ITEMS.find((p) => p.id === id)?.maxCount ?? 3;
+      const next = Math.min(max, Math.max(0, (prev[id] ?? 0) + delta));
+      return { ...prev, [id]: next };
+    });
   };
 
   return (
@@ -197,43 +210,76 @@ export default function PowerUpsScreen({ navigation }) {
           <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>⚡ Vật phẩm hỗ trợ</Text>
           <View style={styles.masterToggleRow}>
             <Text style={[styles.masterToggleLabel, { color: C.primary }]}>
-              {masterEnabled ? 'Đang kích hoạt' : 'Đã tắt'}
+              {powerUpsEnabled ? 'Đang kích hoạt' : 'Đã tắt'}
             </Text>
             <Switch
-              value={masterEnabled}
-              onValueChange={setMasterEnabled}
+              value={powerUpsEnabled}
+              onValueChange={setPowerUpsEnabled}
               trackColor={{ false: C.border, true: C.primaryLight }}
-              thumbColor={masterEnabled ? C.primary : C.textMuted}
+              thumbColor={powerUpsEnabled ? C.primary : C.textMuted}
             />
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+        <View style={[
+          styles.card,
+          { backgroundColor: C.bgCard, borderColor: C.border },
+          !powerUpsEnabled && { opacity: 0.45 },
+        ]}>
           {POWER_ITEMS.map((item, idx) => (
             <View key={item.id}>
               <View style={styles.powerItem}>
+                {/* Icon */}
                 <View style={[styles.powerIconWrap, { backgroundColor: C.primaryLight }]}>
                   <Text style={[styles.powerIcon, { color: C.primary }]}>{item.emoji}</Text>
                 </View>
+
+                {/* Info */}
                 <View style={styles.powerInfo}>
                   <Text style={[styles.powerTitle, { color: C.textPrimary }]}>{item.title}</Text>
                   <Text style={[styles.powerDesc, { color: C.textMuted }]}>{item.desc}</Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.setupBtn, { backgroundColor: C.primaryLight }]}
-                  activeOpacity={0.8}
-                  onPress={() =>
-                    Alert.alert(item.title, `${item.desc}\n\nTính năng thiết lập đang được phát triển.`)
-                  }
-                >
-                  <Text style={[styles.setupBtnText, { color: C.primary }]}>Thiết lập</Text>
-                </TouchableOpacity>
+
+                {/* Stepper số lượng */}
+                <View style={styles.stepper}>
+                  <TouchableOpacity
+                    style={[styles.stepBtn, { borderColor: C.border, backgroundColor: C.bgApp }]}
+                    onPress={() => adjustCount(item.id, -1)}
+                    disabled={!powerUpsEnabled || (powerUpCounts[item.id] ?? 0) <= 0}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.stepBtnText, { color: C.primary }]}>−</Text>
+                  </TouchableOpacity>
+
+                  <View style={[styles.stepCount, { backgroundColor: C.primaryLight }]}>
+                    <Text style={[styles.stepCountText, { color: C.primary }]}>
+                      {powerUpCounts[item.id] ?? DEFAULT_POWER_UP_COUNTS[item.id]}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.stepBtn, { borderColor: C.border, backgroundColor: C.bgApp }]}
+                    onPress={() => adjustCount(item.id, +1)}
+                    disabled={!powerUpsEnabled || (powerUpCounts[item.id] ?? 0) >= item.maxCount}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.stepBtnText, { color: C.primary }]}>+</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               {idx < POWER_ITEMS.length - 1 && (
                 <View style={[styles.divider, { backgroundColor: C.border }]} />
               )}
             </View>
           ))}
+        </View>
+
+        {/* Ghi chú */}
+        <View style={[styles.noteBox, { backgroundColor: C.bgCard, borderColor: C.border, marginTop: 8 }]}>
+          <Text style={[styles.noteText, { color: C.textMuted }]}>
+            💡 Số lượng trên là số lần dùng mỗi vật phẩm trong <Text style={{ fontWeight: '700', color: C.primary }}>1 lượt chơi</Text>.
+            Tối đa 3 lần mỗi loại.
+          </Text>
         </View>
 
         {/* Meme section */}
@@ -475,6 +521,29 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   setupBtnText: { fontSize: 12, fontWeight: '700' },
+
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepBtnText: { fontSize: 18, fontWeight: '700', lineHeight: 22 },
+  stepCount: {
+    width: 32,
+    height: 30,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepCountText: { fontSize: 15, fontWeight: '900' },
 
   memeItem: {
     flexDirection: 'row',
