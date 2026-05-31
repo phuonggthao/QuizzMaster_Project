@@ -1,10 +1,13 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcryptjs';
 import Question from './Model/Question.js';
 import Category from './Model/Category.js';
 import GameConfig from './Model/GameConfig.js';
+import User from './Model/User.js';
+import { connectDatabase } from '../Api/mongoClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

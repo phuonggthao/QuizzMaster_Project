@@ -1,23 +1,31 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-// Tính đường dẫn tuyệt đối đến file .env ở thư mục gốc dự án
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Lưu trữ biến db ở đây để dùng bất cứ đâu
+let dbInstance = null;
 
-export const connectDatabase = async () => {
-  try {
-    const uri = process.env.MONGO_URI;
-    if (!uri) {
-      throw new Error("Chưa tìm thấy MONGO_URI trong file .env !");
+const connectDatabase = async () => {
+    if (mongoose.connection.readyState === 1) {
+        dbInstance = mongoose.connection.db;
+        return;
     }
-    await mongoose.connect(uri);
-    console.log("✅ Team QuizzMaster đã kết nối Database thành công!");
-  } catch (error) {
-    console.error("❌ Lỗi kết nối MongoDB:", error.message);
-    process.exit(1);
-  }
+
+    console.log("🚀 Đang kết nối Database...");
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: 'QuizzMaster',
+        serverSelectionTimeoutMS: 5000,
+        family: 4
+    });
+
+    dbInstance = mongoose.connection.db; // Lưu lại kết nối ngay khi thành công
+    console.log("✅ Kết nối Database thành công!");
+     console.log("✅ Đã kết nối tới Database tên là:", mongoose.connection.name);
 };
+
+// Hàm lấy db an toàn
+const getDb = () => {
+    if (!dbInstance) throw new Error("Database chưa sẵn sàng!");
+    return dbInstance;
+   
+};
+
+export { mongoose, connectDatabase, getDb };

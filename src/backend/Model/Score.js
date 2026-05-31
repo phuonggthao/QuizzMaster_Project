@@ -1,14 +1,41 @@
 import mongoose from 'mongoose';
 
 const ScoreSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    gameType: { type: String, required: true },
-    points: { type: Number, required: true },
-    accuracy: { type: Number },                 // Tỷ lệ % trả lời đúng trong lượt chơi
-    timeSpent: { type: Number },                // Tổng thời gian hoàn thành lượt chơi (giây)
-    playedAt: { type: Date, default: Date.now }
+    username: { // Đổi userId thành username
+        type: String,
+        required: true,
+        index: true 
+    },
+    gameType: { 
+        type: String, 
+        required: true, 
+        index: true // Rất quan trọng: Để lọc Bảng xếp hạng theo từng loại game
+    },
+    points: { 
+        type: Number, 
+        required: true,
+        index: true // Quan trọng: Để sắp xếp bảng xếp hạng theo điểm
+    },
+    accuracy: { 
+        type: Number, 
+        min: 0, 
+        max: 100 // Giới hạn % chính xác
+    },
+    timeSpent: { 
+        type: Number, // (giây)
+        min: 0 
+    },
+    playedAt: { 
+        type: Date, 
+        default: Date.now,
+        index: true // Để lọc bảng xếp hạng theo thời gian (ví dụ: Top tuần/tháng)
+    }
 }, {
-    collection: 'scores' // Ép chuẩn đồng bộ vào bảng tên 'scores' viết thường
+    collection: 'scores'
 });
+
+// Thêm Compound Index để lấy Leaderboard cho từng game cực nhanh
+// Cấu trúc: Lọc theo gameType -> Sắp xếp theo points (giảm dần) -> Lấy điểm gần nhất
+ScoreSchema.index({ gameType: 1, points: -1, playedAt: -1 });
 
 export default mongoose.model('Score', ScoreSchema);

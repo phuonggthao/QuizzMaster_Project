@@ -16,31 +16,56 @@ const QuestionSchema = new mongoose.Schema({
             'SimpleSpin',   // 9. Vòng quay may mắn tính góc xoay
             'FindMatch',    // 10. Tìm hình lựa chọn khớp với mục tiêu
             'FillInBlank',  // 11. Điền vào chỗ trống
-        ]
+        ],
+        index: true
     },
-    category:      { type: String, required: true },    // Ví dụ: Toán, Lý, Tiếng Anh, Logic
-    questionText:  { type: String },                    // Nội dung câu hỏi dạng văn bản
-    imageName:     { type: String },                    // Tên file ảnh từ bộ nhớ lưu trữ
-    imageUrl:      { type: String },                    // URL ảnh trực tiếp (PictureQuiz, FindMatch)
-    options:       [{ type: String }],                  // Danh sách các đáp án lựa chọn
-    correctAnswer: { type: String, required: true },    // Đáp án đúng để so khớp logic
-    difficulty:    { type: String, default: 'Easy' },
 
-    // Cấu trúc mảng cho trò chơi Matching Pairs
+    category: { type: String, required: true, index: true },
+    questionText: { type: String, trim: true },
+
+    imageName: { type: String },
+    imageUrl: { type: String },
+
+    options: [{ type: String, trim: true }],
+    correctAnswer: { type: String, required: true, trim: true },
+
+    difficulty: {
+        type: String,
+        enum: ['Easy', 'Medium', 'Hard'],
+        default: 'Easy'
+    },
+
     pairs: [{
-        id:    { type: String },
-        text:  { type: String },
-        image: { type: String }
+        id: String,
+        text: String,
+        image: String
     }],
 
-    // Phần thưởng cho OpenBox và SimpleSpin
     rewards: [{
-        name:  { type: String },
-        value: { type: Number }
+        name: String,
+        value: Number
     }]
 }, {
     timestamps: true,
-    collection: 'questions'
+    collection: 'questions', // Chỉ định rõ collection để tránh Mongoose tự thêm 's'
+    // Tự động sử dụng lean() nếu bạn muốn truy vấn nhanh hơn mặc định
+    // (Lưu ý: lean() trả về object JS thuần, không phải document Mongoose)
 });
 
-export default mongoose.model('Question', QuestionSchema);
+// Index kép tối ưu hóa truy vấn
+QuestionSchema.index({ gameType: 1, category: 1 });
+
+/** * ĐẢM BẢO MODEL CHỈ ĐƯỢC KHỞI TẠO 1 LẦN
+ * Đây là cách an toàn nhất trong môi trường Node.js 
+ */
+let Question;
+
+try {
+    // Thử lấy model nếu đã tồn tại
+    Question = mongoose.model('Question');
+} catch (error) {
+    // Nếu chưa tồn tại, thì tạo mới
+    Question = mongoose.model('Question', QuestionSchema);
+}
+
+export default Question;

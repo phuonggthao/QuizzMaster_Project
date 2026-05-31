@@ -1,4 +1,5 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import { connectDatabase } from './mongoClient.js';
 import { register, login, getMe } from '../backend/Controller/authController.js';
 import { getGameQuestions } from '../backend/Service/gameLogicService.js';
@@ -8,11 +9,11 @@ import { addQuestion, getQuizList, getAllQuestions, deleteQuestion, getQuizzesBy
 import User from '../backend/Model/User.js';
 import Score from '../backend/Model/Score.js';
 
-// ⚙️ KHỞI TẠO EXPRESS APP TRƯỚC TIÊN
+dotenv.config();
 const app = express();
 app.use(express.json());
 
-// ✅ CORS — cho phép web browser và điện thoại gọi API
+// ✅ CORS
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -22,32 +23,7 @@ app.use((req, res, next) => {
 });
 
 const router = express.Router();
-
-// Kết nối MongoDB Atlas khi server khởi động
 connectDatabase();
-
-// ------------------------------------------
-// 🔐 XÁC THỰC (ĐĂNG KÝ / ĐĂNG NHẬP)
-// ------------------------------------------
-router.post('/auth/register', register);
-router.post('/auth/login', login);
-router.get('/auth/me', verifyToken, getMe);
-
-// ------------------------------------------
-// 🎮 TRÒ CHƠI & CÂU HỎI
-// ------------------------------------------
-router.get('/game/questions/:gameType', verifyToken, async (req, res) => {
-    try {
-        const { gameType } = req.params;
-        const questions = await getGameQuestions(gameType);
-        if (!questions || questions.length === 0) {
-            return res.status(404).json({ message: `Chưa có câu hỏi nào thuộc trò chơi ${gameType} trên Database!` });
-        }
-        res.status(200).json(questions);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 router.post('/game/questions/add', verifyToken, isAdmin, async (req, res) => {
     try {
