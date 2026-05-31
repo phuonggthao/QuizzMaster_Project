@@ -4,8 +4,8 @@ const CategorySchema = new mongoose.Schema({
     name: { 
         type: String, 
         required: [true, 'Tên danh mục là bắt buộc'], 
-        unique: true,          // Tránh trùng lặp danh mục
-        trim: true             // Tự động xóa khoảng trắng thừa ở 2 đầu
+        unique: true,          // Tự động tạo Index unique cho 'name'
+        trim: true 
     },
     description: { 
         type: String, 
@@ -19,11 +19,11 @@ const CategorySchema = new mongoose.Schema({
         default: true 
     }
 }, {
-    timestamps: true,          // TỰ ĐỘNG TẠO createdAt và updatedAt
-    collection: 'categories'   // Ép chuẩn vào collection 'categories'
+    timestamps: true,
+    collection: 'categories'
 });
 
-// Thêm Index cho trường name để tìm kiếm nhanh hơn
-CategorySchema.index({ name: 1 });
+// XÓA DÒNG CategorySchema.index({ name: 1 }); ĐI
+// Vì 'unique: true' ở trên đã làm công việc đó rồi.
 
 export default mongoose.model('Category', CategorySchema);

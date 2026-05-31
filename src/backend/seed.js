@@ -1,4 +1,5 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
+mongoose.set('debug', true);
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -279,32 +280,37 @@ const seedDB = async () => {
     try {
         const directURI = "mongodb://admin:123456ABC@ac-1jjcnit-shard-00-00.rivxhf9.mongodb.net:27017,ac-1jjcnit-shard-00-01.rivxhf9.mongodb.net:27017,ac-1jjcnit-shard-00-02.rivxhf9.mongodb.net:27017/QuizzMaster?ssl=true&replicaSet=atlas-dz725f-shard-0&authSource=admin&appName=ClusterQuizzMaster";
 
-        await mongoose.connect(directURI, { serverSelectionTimeoutMS: 10000 });
+        // Cấu hình để kết nối nhanh nhất có thể
+        await mongoose.connect(directURI, { 
+            serverSelectionTimeoutMS: 30000,
+            autoIndex: false // TẮT autoIndex để tránh xung đột
+        });
         console.log("⚡ Đã kết nối MongoDB Atlas thành công!");
 
-        await Category.deleteMany({});
-        await GameConfig.deleteMany({});
-        await Question.deleteMany({});
-        console.log("🧹 Đã xóa dữ liệu cũ.");
+        // Xóa toàn bộ database cũ (nhanh hơn deleteMany)
+        const db = mongoose.connection.db;
+        await db.dropDatabase(); 
+        console.log("🧹 Đã drop toàn bộ database cũ.");
 
         await Category.insertMany(sampleCategories);
         await GameConfig.insertMany(sampleGameConfigs);
         await Question.insertMany(sampleQuestions);
 
         const total = await Question.countDocuments();
-        console.log(`\n🎉 Đã nạp thành công ${total} câu hỏi vào MongoDB!\n`);
+        console.log(\n🎉 Đã nạp thành công  câu hỏi vào MongoDB!\n);
         console.log("📦 Phân bổ theo bộ chủ đề:");
         for (const cat of ["Động Vật","Địa Lý","Khoa Học","Tiếng Anh","Toán Học","Lịch Sử"]) {
             const n = await Question.countDocuments({ category: cat });
-            console.log(`   ${cat.padEnd(12)}: ${n} câu`);
+            console.log(   :  câu);
         }
         console.log("\n🎮 Phân bổ theo loại game:");
         for (const g of ["Quiz","TrueFalse","Flashcard","WordScramble","FillInBlank","LuckyNumber"]) {
             const n = await Question.countDocuments({ gameType: g });
-            console.log(`   ${g.padEnd(14)}: ${n} câu`);
+            console.log(   :  câu);
         }
 
-        mongoose.connection.close();
+        await mongoose.disconnect();
+        process.exit(0);
     } catch (error) {
         console.error("❌ Lỗi nạp dữ liệu:", error.message);
         process.exit(1);
