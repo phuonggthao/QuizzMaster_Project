@@ -3,15 +3,16 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 export default function AppHeader({ navigation, activeTab, hideBack = false }) {
-  const { theme: C } = useTheme();
+  const { theme: C, isAdmin } = useTheme();
   const canGoBack = !hideBack && navigation.canGoBack();
-  const tabs = [
+  const allTabs = [
     { key: 'Play',      label: 'Play',       route: 'Home' },
     { key: 'Explore',   label: 'Explore',    route: 'Explore' },
-    { key: 'Manage',    label: 'Manage',     route: 'Manage' },
-    { key: 'Report',    label: 'Report',     route: 'Report' },
+    { key: 'Manage',    label: 'Manage',     route: 'Manage',  adminOnly: true },
+    { key: 'Report',    label: 'Report',     route: 'Report',  adminOnly: true },
     { key: 'Profile',   label: 'My Profile', route: 'Profile' },
   ];
+  const tabs = allTabs.filter(t => !t.adminOnly || isAdmin);
 
   return (
     <View style={[styles.header, { backgroundColor: C.bgCard, borderBottomColor: C.border }]}>

@@ -8,11 +8,6 @@ import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
 import BASE_URL from '../config';
 
-const IMPORT_OPTIONS = [
-  { id: '1', emoji: '📊', title: 'Nhập từ Excel', desc: 'Tải file .xlsx hoặc .csv có sẵn' },
-  { id: '2', emoji: '📝', title: 'Nhập từ Google Forms', desc: 'Đồng bộ câu hỏi từ biểu mẫu của bạn' },
-];
-
 const DIFFICULTY_COLOR = {
   Easy:   { color: '#059669', bg: '#DCFCE7' },
   Medium: { color: '#D97706', bg: '#FEF3C7' },
@@ -22,7 +17,7 @@ const DIFFICULTY_COLOR = {
 const GAME_EMOJI = {
   Quiz: '💻', TrueFalse: '🦆', Flashcard: '🎴', WordScramble: '🔤',
   LuckyNumber: '🎰', PictureQuiz: '🖼️', Matching: '🔗',
-  OpenBox: '🎁', SimpleSpin: '🌀', FindMatch: '🔍',
+  OpenBox: '🎁', SimpleSpin: '🌀', FindMatch: '🔍', default: '🎮',
 };
 
 export default function ManageScreen({ navigation }) {
@@ -42,7 +37,6 @@ export default function ManageScreen({ navigation }) {
           return;
         }
 
-        // Kiểm tra có phải admin không
         const meRes = await fetch(`${BASE_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -50,7 +44,6 @@ export default function ManageScreen({ navigation }) {
           const meData = await meRes.json();
           if (meData.user?.role === 'Admin') {
             setIsAdmin(true);
-            // Lấy danh sách câu hỏi thật
             const qRes = await fetch(`${BASE_URL}/manage/questions`, {
               headers: { Authorization: `Bearer ${token}` },
             });
@@ -69,8 +62,8 @@ export default function ManageScreen({ navigation }) {
     fetchQuestions();
   }, []);
 
-  const handleDelete = async (id, title) => {
-    Alert.alert('Xóa câu hỏi', `Bạn có chắc muốn xóa câu hỏi này không?`, [
+  const handleDelete = async (id) => {
+    Alert.alert('Xóa câu hỏi', 'Bạn có chắc muốn xóa câu hỏi này không?', [
       { text: 'Huỷ', style: 'cancel' },
       {
         text: 'Xóa', style: 'destructive',
@@ -104,6 +97,14 @@ export default function ManageScreen({ navigation }) {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
   };
 
+  // Đếm theo gameType
+  const gameTypeCounts = questions.reduce((acc, q) => {
+    acc[q.gameType] = (acc[q.gameType] || 0) + 1;
+    return acc;
+  }, {});
+
+  const totalGameTypes = Object.keys(gameTypeCounts).length;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgCard} />
@@ -114,138 +115,140 @@ export default function ManageScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* AI Banner */}
-        <View style={[styles.aiBanner, { backgroundColor: C.primaryDark }]}>
-          <View style={styles.aiBannerTop}>
-            <Text style={styles.aiIcon}>✨</Text>
-            <Text style={styles.aiLabel}>QUIZMATES AI ASSISTANT</Text>
-          </View>
-          <Text style={styles.aiTitle}>Sáng tạo nội dung trong tích tắc</Text>
-          <Text style={styles.aiSubtitle}>
-            Tạo bộ câu hỏi chuyên nghiệp chỉ trong vài giây với sức mạnh AI
-          </Text>
-          <TouchableOpacity style={styles.aiBtn} activeOpacity={0.85} onPress={() => navigation.navigate('QuestionType')}>
-            <Text style={styles.aiBtnText}>⊕ Tạo với Quizizz AI</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Import options */}
-        <View style={[styles.importCard, { backgroundColor: C.bgCard, borderColor: C.border }]}>
-          {IMPORT_OPTIONS.map((opt, idx) => (
-            <View key={opt.id}>
-              <TouchableOpacity
-                style={styles.importItem}
-                activeOpacity={0.8}
-                onPress={() => Alert.alert('Thông báo', opt.id === '1' ? 'Tính năng nhập Excel đang phát triển' : 'Tính năng nhập Google Forms đang phát triển')}
-              >
-                <Text style={styles.importEmoji}>{opt.emoji}</Text>
-                <View style={styles.importInfo}>
-                  <Text style={[styles.importTitle, { color: C.textPrimary }]}>{opt.title}</Text>
-                  <Text style={[styles.importDesc, { color: C.textMuted }]}>{opt.desc}</Text>
-                </View>
-                <Text style={[styles.importArrow, { color: C.textMuted }]}>›</Text>
-              </TouchableOpacity>
-              {idx < IMPORT_OPTIONS.length - 1 && <View style={[styles.divider, { backgroundColor: C.border }]} />}
-            </View>
-          ))}
-        </View>
-
-        {/* Questions section */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>
-              {isAdmin ? 'Câu hỏi trong Database' : 'Bộ câu hỏi của tôi'}
+        {/* Page title — giống ReportScreen */}
+        <View style={styles.pageHeader}>
+          <View style={styles.pageHeaderLeft}>
+            <Text style={[styles.pageTitle, { color: C.textPrimary }]}>Quản lý câu hỏi</Text>
+            <Text style={[styles.pageSubtitle, { color: C.textMuted }]}>
+              {isAdmin ? 'Quản lý toàn bộ câu hỏi trong database' : 'Tổng quan nội dung hệ thống'}
             </Text>
-            {isAdmin && !loading && (
-              <Text style={[{ fontSize: 12, color: C.textMuted, marginTop: 2 }]}>
-                {questions.length} câu hỏi tổng cộng
-              </Text>
-            )}
           </View>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('QuestionType')}>
-            <Text style={[styles.seeAll, { color: C.primary }]}>+ Thêm mới</Text>
+          <TouchableOpacity
+            style={[styles.addBtn, { backgroundColor: C.bgCard, borderColor: C.border }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('QuestionType')}
+          >
+            <Text style={styles.addBtnText}>＋</Text>
           </TouchableOpacity>
         </View>
 
         {loading ? (
-          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+          <View style={{ paddingVertical: 60, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={C.primary} />
             <Text style={[{ color: C.textMuted, marginTop: 12, fontSize: 13 }]}>Đang kết nối MongoDB...</Text>
           </View>
         ) : !isAdmin ? (
-          // Non-admin: hiển thị thông báo và hướng dẫn
           <View style={[styles.noAdminBox, { backgroundColor: C.bgCard, borderColor: C.border }]}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>🔐</Text>
+            <Text style={{ fontSize: 48, marginBottom: 12 }}>🔐</Text>
             <Text style={[styles.noAdminTitle, { color: C.textPrimary }]}>Cần quyền Admin</Text>
             <Text style={[styles.noAdminDesc, { color: C.textMuted }]}>
               Chức năng quản lý câu hỏi chỉ dành cho tài khoản Admin. Hãy liên hệ quản trị viên để được cấp quyền.
             </Text>
           </View>
-        ) : questions.length === 0 ? (
-          <View style={[styles.noAdminBox, { backgroundColor: C.bgCard, borderColor: C.border }]}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📭</Text>
-            <Text style={[styles.noAdminTitle, { color: C.textPrimary }]}>Chưa có câu hỏi</Text>
-            <Text style={[styles.noAdminDesc, { color: C.textMuted }]}>
-              Database chưa có câu hỏi nào. Hãy thêm câu hỏi mới hoặc chạy seed script.
-            </Text>
-          </View>
         ) : (
-          questions.map((q) => {
-            const diff = DIFFICULTY_COLOR[q.difficulty] || DIFFICULTY_COLOR.Easy;
-            const emoji = GAME_EMOJI[q.gameType] || '🎮';
-            return (
-              <View key={q._id} style={[styles.quizItem, { backgroundColor: C.bgCard, borderColor: C.border }]}>
-                {/* Thumbnail */}
-                <View style={[styles.quizThumb, { backgroundColor: C.primaryDark }]}>
-                  <Text style={styles.quizThumbEmoji}>{emoji}</Text>
-                </View>
-
-                {/* Info */}
-                <View style={styles.quizInfo}>
-                  <Text style={[styles.quizTitle, { color: C.textPrimary }]} numberOfLines={1}>
-                    {q.questionText || `[${q.gameType}] Câu hỏi`}
-                  </Text>
-                  <View style={styles.quizMetaRow}>
-                    <View style={[styles.statusBadge, { backgroundColor: diff.bg }]}>
-                      <Text style={[styles.statusText, { color: diff.color }]}>{q.difficulty || 'Easy'}</Text>
-                    </View>
-                    <Text style={[styles.quizMeta, { color: C.textMuted }]}>
-                      {q.gameType}  •  {q.category}
-                    </Text>
+          <>
+            {/* Stats cards — giống ReportScreen */}
+            <View style={styles.statsRow}>
+              <View style={[styles.statCard, { backgroundColor: C.primary }]}>
+                <View style={styles.statCardTop}>
+                  <View>
+                    <Text style={styles.statCardLabel}>Tổng câu hỏi</Text>
+                    <Text style={styles.statCardValue}>{questions.length}</Text>
                   </View>
-                  <Text style={[{ fontSize: 10, color: C.textMuted, marginTop: 2 }]}>
-                    📅 {formatDate(q.createdAt)}
-                  </Text>
+                  <Text style={styles.statCardIcon}>📚</Text>
                 </View>
-
-                {/* Actions */}
-                <View style={styles.quizActions}>
-                  {deleting === q._id ? (
-                    <ActivityIndicator size="small" color={C.wrong} />
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}
-                      activeOpacity={0.7}
-                      onPress={() => handleDelete(q._id, q.questionText)}
-                    >
-                      <Text style={styles.actionBtnText}>🗑️</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                <Text style={styles.statCardNote}>Trong database</Text>
               </View>
-            );
-          })
+
+              <View style={[styles.statCard, { backgroundColor: '#0891B2' }]}>
+                <View style={styles.statCardTop}>
+                  <View>
+                    <Text style={styles.statCardLabel}>Loại game</Text>
+                    <Text style={styles.statCardValue}>{totalGameTypes}</Text>
+                  </View>
+                  <Text style={styles.statCardIcon}>🎮</Text>
+                </View>
+                <Text style={styles.statCardNote}>Game types khác nhau</Text>
+              </View>
+            </View>
+
+            {/* Section header — giống ReportScreen */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Danh sách câu hỏi</Text>
+              <TouchableOpacity
+                style={[styles.newBtn, { backgroundColor: C.primaryLight }]}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('QuestionType')}
+              >
+                <Text style={[styles.newBtnText, { color: C.primary }]}>＋ Thêm mới</Text>
+              </TouchableOpacity>
+            </View>
+
+            {questions.length === 0 ? (
+              <View style={[styles.emptyBox, { backgroundColor: C.bgCard, borderColor: C.border }]}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>📭</Text>
+                <Text style={[{ color: C.textMuted, fontSize: 13, textAlign: 'center' }]}>
+                  Chưa có câu hỏi nào trong database
+                </Text>
+              </View>
+            ) : (
+              questions.map((q) => {
+                const diff = DIFFICULTY_COLOR[q.difficulty] || DIFFICULTY_COLOR.Easy;
+                const emoji = GAME_EMOJI[q.gameType] || GAME_EMOJI.default;
+                return (
+                  <View
+                    key={q._id}
+                    style={[styles.questionItem, { backgroundColor: C.bgCard, borderColor: C.border }]}
+                  >
+                    <View style={styles.questionInfo}>
+                      {/* Row 1: emoji + title */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                        <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                        <Text style={[styles.questionTitle, { color: C.textPrimary }]} numberOfLines={1}>
+                          {q.questionText || `[${q.gameType}] Câu hỏi`}
+                        </Text>
+                      </View>
+                      {/* Row 2: meta */}
+                      <Text style={[styles.questionMeta, { color: C.textMuted }]}>
+                        🎮 {q.gameType}{'  '}📂 {q.category}{'  '}📅 {formatDate(q.createdAt)}
+                      </Text>
+                      {/* Row 3: progress bar (difficulty) */}
+                      <View style={styles.progressRow}>
+                        <View style={[styles.progressBg, { backgroundColor: C.bgApp }]}>
+                          <View style={[styles.progressFill, {
+                            width: q.difficulty === 'Easy' ? '33%' : q.difficulty === 'Medium' ? '66%' : '100%',
+                            backgroundColor: diff.color,
+                          }]} />
+                        </View>
+                        <Text style={[styles.progressLabel, { color: C.textMuted }]}>
+                          {q.difficulty || 'Easy'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Action — score chip style */}
+                    <View style={styles.questionActions}>
+                      {deleting === q._id ? (
+                        <ActivityIndicator size="small" color={C.wrong} />
+                      ) : (
+                        <TouchableOpacity
+                          style={[styles.deleteChip, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}
+                          activeOpacity={0.7}
+                          onPress={() => handleDelete(q._id)}
+                        >
+                          <Text style={styles.deleteChipText}>🗑️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </>
         )}
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: C.primary, shadowColor: C.primary }]}
-        onPress={() => navigation.navigate('QuestionType')}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+
     </SafeAreaView>
   );
 }
@@ -255,45 +258,78 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
 
-  aiBanner: { marginHorizontal: 20, marginBottom: 20, borderRadius: 20, padding: 22 },
-  aiBannerTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  aiIcon: { fontSize: 18 },
-  aiLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.75)', letterSpacing: 1 },
-  aiTitle: { fontSize: 20, fontWeight: '900', color: '#fff', marginBottom: 8, lineHeight: 26 },
-  aiSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 18, marginBottom: 18 },
-  aiBtn: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.6)', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20, alignSelf: 'flex-start' },
-  aiBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  // Page header — giống ReportScreen
+  pageHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14,
+  },
+  pageHeaderLeft: {},
+  pageTitle: { fontSize: 20, fontWeight: '900' },
+  pageSubtitle: { fontSize: 12, marginTop: 2 },
+  addBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1,
+  },
+  addBtnText: { fontSize: 20, lineHeight: 24 },
 
-  importCard: { marginHorizontal: 20, marginBottom: 24, borderRadius: 16, borderWidth: 1, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
-  importItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
-  importEmoji: { fontSize: 26 },
-  importInfo: { flex: 1 },
-  importTitle: { fontSize: 15, fontWeight: '700', marginBottom: 3 },
-  importDesc: { fontSize: 12 },
-  importArrow: { fontSize: 24, fontWeight: '300' },
-  divider: { height: 1, marginHorizontal: 16 },
+  // No admin box
+  noAdminBox: {
+    borderRadius: 20, marginHorizontal: 20, padding: 40,
+    alignItems: 'center', borderWidth: 1,
+  },
+  noAdminTitle: { fontSize: 18, fontWeight: '800', marginBottom: 10 },
+  noAdminDesc: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
 
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, marginBottom: 14 },
+  // Stats cards — giống ReportScreen
+  statsRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 12, marginBottom: 24 },
+  statCard: {
+    flex: 1, borderRadius: 18, padding: 16,
+    elevation: 3, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8,
+  },
+  statCardTop: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 10,
+  },
+  statCardLabel: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginBottom: 4 },
+  statCardValue: { fontSize: 32, fontWeight: '900', color: '#fff' },
+  statCardIcon: { fontSize: 24 },
+  statCardNote: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '600' },
+
+  // Section header — giống ReportScreen
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, marginBottom: 14, flexWrap: 'wrap', gap: 8,
+  },
   sectionTitle: { fontSize: 17, fontWeight: '800' },
-  seeAll: { fontSize: 13, fontWeight: '700' },
+  newBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
+  newBtnText: { fontSize: 12, fontWeight: '700' },
 
-  noAdminBox: { borderRadius: 16, marginHorizontal: 20, padding: 32, alignItems: 'center', borderWidth: 1 },
-  noAdminTitle: { fontSize: 16, fontWeight: '800', marginBottom: 8 },
-  noAdminDesc: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  // Empty box
+  emptyBox: {
+    borderRadius: 14, marginHorizontal: 20, padding: 32,
+    alignItems: 'center', borderWidth: 1,
+  },
 
-  quizItem: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, marginHorizontal: 20, marginBottom: 12, padding: 14, borderWidth: 1, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, gap: 12 },
-  quizThumb: { width: 60, height: 60, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  quizThumbEmoji: { fontSize: 28 },
-  quizInfo: { flex: 1 },
-  quizTitle: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
-  quizMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  quizMeta: { fontSize: 11 },
-  quizActions: { flexDirection: 'row', gap: 4 },
-  actionBtn: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  actionBtnText: { fontSize: 16 },
+  // Question item — giống testItem trong ReportScreen
+  questionItem: {
+    borderRadius: 16, marginHorizontal: 20, marginBottom: 12, padding: 16,
+    borderWidth: 1, elevation: 2, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+  },
+  questionInfo: { flex: 1 },
+  questionTitle: { fontSize: 14, fontWeight: '700', flex: 1 },
+  questionMeta: { fontSize: 11, marginBottom: 10 },
+  progressRow: { gap: 6 },
+  progressBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3 },
+  progressLabel: { fontSize: 11, fontWeight: '600' },
 
-  fab: { position: 'absolute', bottom: 80, right: 20, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
-  fabText: { color: '#fff', fontSize: 28, fontWeight: '300', lineHeight: 32 },
+  questionActions: { alignItems: 'center' },
+  deleteChip: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
+  deleteChipText: { fontSize: 16 },
+
+  // FAB (removed)
+
 });

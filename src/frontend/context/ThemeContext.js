@@ -22,6 +22,7 @@ export function ThemeProvider({ children }) {
   const [fireworks, setFireworks] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Power-ups settings
   const [powerUpsEnabled, setPowerUpsEnabled] = useState(true);
@@ -168,6 +169,8 @@ export function ThemeProvider({ children }) {
         resetPowerUps,
         usePowerUp,
         DEFAULT_POWER_UP_COUNTS,
+        isAdmin,
+        setIsAdmin,
       }}
     >
       {children}

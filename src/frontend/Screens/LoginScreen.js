@@ -11,7 +11,7 @@ export default function LoginScreen({ navigation }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const { isDark, theme: C } = useTheme();
+    const { isDark, theme: C, setIsAdmin } = useTheme();
 
     const handleLogin = async () => {
         if (!username || !password) {
@@ -31,8 +31,10 @@ export default function LoginScreen({ navigation }) {
                 if (data.user?._id) await AsyncStorage.setItem('userId', data.user._id);
                 await AsyncStorage.setItem('userInfo', JSON.stringify(data.user));
                 if (data.user.role === 'Admin') {
+                    setIsAdmin(true);
                     navigation.replace('Admin');
                 } else {
+                    setIsAdmin(false);
                     navigation.replace('Landing');
                 }
             } else {
@@ -47,6 +49,7 @@ export default function LoginScreen({ navigation }) {
 
     // Đăng nhập khách — không cần tài khoản
     const handleGuestLogin = async () => {
+        setIsAdmin(false);
         await AsyncStorage.setItem('userToken', 'GUEST');
         await AsyncStorage.setItem('userInfo', JSON.stringify({
             fullName: 'Khách',
