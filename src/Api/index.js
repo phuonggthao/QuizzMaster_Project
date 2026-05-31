@@ -1,15 +1,19 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import { connectDatabase } from './mongoClient.js';
 import { register, login, getMe } from '../backend/Controller/authController.js';
 import { getGameQuestions } from '../backend/Service/gameLogicService.js';
-import { processGameOver, getLeaderboard, getUserHistory, getReportStats } from '../backend/Service/scoreService.js';
+import { processGameOver, getGlobalLeaderboard, getUserHistory, getReportStats } from '../backend/Service/scoreService.js';
 import { verifyToken, isAdmin } from '../backend/Middleware/authMiddleware.js';
 import { addQuestion, getQuizList, getAllQuestions, deleteQuestion, getQuizzesByCategory, getAllCategories } from '../backend/Service/questionService.js';
 import User from '../backend/Model/User.js';
 import Score from '../backend/Model/Score.js';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: resolve(__dirname, '../../.env') });
 const app = express();
 app.use(express.json());
 
@@ -59,7 +63,7 @@ router.post('/game/game-over', async (req, res) => {
 
 router.get('/game/leaderboard', async (req, res) => {
     try {
-        const leaderboardData = await getLeaderboard();
+        const leaderboardData = await getGlobalLeaderboard();
         res.status(200).json(leaderboardData);
     } catch (error) {
         res.status(500).json({ error: error.message });
