@@ -94,7 +94,27 @@ export const getGameQuestions = async (gameType, limit = 10) => {
             console.log("💡 Mẫu dữ liệu trong DB hiện tại:", all.map(q => q.gameType));
         }
 
-        return allQuestions.sort(() => 0.5 - Math.random()).slice(0, Number(limit));
+        // Fisher-Yates shuffle — phân phối đều, không bị bias như sort(() => random)
+        for (let i = allQuestions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+        }
+
+        // Shuffle options của từng câu để đáp án đúng không luôn ở cùng vị trí
+        const result = allQuestions.slice(0, Number(limit)).map(q => {
+            const doc = q.toObject ? q.toObject() : { ...q };
+            if (Array.isArray(doc.options) && doc.options.length > 1) {
+                const opts = [...doc.options];
+                for (let i = opts.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [opts[i], opts[j]] = [opts[j], opts[i]];
+                }
+                doc.options = opts;
+            }
+            return doc;
+        });
+
+        return result;
     } catch (error) {
         console.error(`❌ Lỗi truy vấn:`, error.message);
         throw error;
