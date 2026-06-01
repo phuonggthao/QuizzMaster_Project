@@ -45,8 +45,14 @@ export default function ProfileScreen({ navigation }) {
         if (meRes.ok) {
           setUser(meData.user);
           setLoginStreak(meData.user?.loginStreak || 0);
+        } else if (meRes.status === 401) {
+          // Token hết hạn → về Login
+          await AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']);
+          navigation.replace('Login');
+          return;
+        } else {
+          throw new Error('Không tải được hồ sơ');
         }
-        else throw new Error('Không tải được hồ sơ');
 
         // Lấy stats thật (tổng lượt chơi, tổng điểm)
         const statsRes = await fetch(`${BASE_URL}/user/stats`, { headers });

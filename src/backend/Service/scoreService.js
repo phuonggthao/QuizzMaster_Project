@@ -1,41 +1,53 @@
 import User from '../Model/User.js';
 import Score from '../Model/Score.js';
 
-export const processGameOver = async (username, gameType, correctAnswersCount) => {
+/**
+ * FIX #4: Nhận điểm thực từ frontend (score) thay vì tự tính lại
+ * Frontend tính: 10đ/câu + combo bonus + double points
+ * Backend chỉ cần lưu và cập nhật highScore
+ */
+export const processGameOver = async (username, gameType, correctAnswersCount, score) => {
     try {
-        const totalScoreThisTurn = correctAnswersCount * 2;
+        // Nếu frontend truyền score thực thì dùng, không thì fallback tính đơn giản
+        const finalScore = (score !== undefined && score !== null) ? score : correctAnswersCount * 10;
 
-        // Tối ưu: Gộp tìm/tạo và cập nhật điểm vào 1 câu lệnh duy nhất
-        // Chúng ta lấy user trước khi update để so sánh kỷ lục
         const user = await User.findOne({ username });
         const oldHighScore = user ? user.highScore : 0;
 
-        // Cập nhật User với toán tử $max để đảm bảo highScore luôn là cao nhất
+        const newHighScore = Math.max(finalScore, oldHighScore);
+        const newLevel = Math.floor(newHighScore / 20) + 1;
+        const newTierName = getTierName(newHighScore);
+
         const updatedUser = await User.findOneAndUpdate(
             { username },
-            { 
-                $setOnInsert: { role: 'User', level: 1 },
-                $max: { highScore: totalScoreThisTurn },
-                // Cập nhật level dựa trên điểm cao nhất (tính toán dựa trên điểm mới hoặc cũ)
-                $set: { level: Math.floor(Math.max(totalScoreThisTurn, oldHighScore) / 20) + 1 }
+            {
+                $setOnInsert: { role: 'User' },
+                $max: { highScore: finalScore },
+                $set: { level: newLevel, tierName: newTierName }
             },
             { upsert: true, new: true }
         );
 
-        // Tạo lịch sử chơi
+        // Tính accuracy nếu có correctAnswersCount
+        const accuracy = correctAnswersCount > 0
+            ? Math.round((correctAnswersCount / 10) * 100)
+            : null;
+
         await Score.create({
             username,
             gameType,
-            points: totalScoreThisTurn,
+            points: finalScore,
+            accuracy,
             playedAt: new Date()
         });
 
         return {
             status: "success",
-            score: totalScoreThisTurn,
-            isNewRecord: totalScoreThisTurn > oldHighScore,
+            score: finalScore,
+            isNewRecord: finalScore > oldHighScore,
             highScore: updatedUser.highScore,
-            level: updatedUser.level
+            level: updatedUser.level,
+            tierName: updatedUser.tierName,
         };
     } catch (error) {
         console.error("❌ Lỗi tại processGameOver:", error);
@@ -43,13 +55,21 @@ export const processGameOver = async (username, gameType, correctAnswersCount) =
     }
 };
 
+// Helper: tính tier dựa trên highScore
+function getTierName(highScore) {
+    if (highScore >= 500) return 'Kim Cương';
+    if (highScore >= 300) return 'Vàng';
+    if (highScore >= 150) return 'Bạc';
+    return 'Đồng';
+}
+
 export const getGlobalLeaderboard = async () => {
     try {
         return await User.find({ role: 'User', highScore: { $gt: 0 } })
             .sort({ highScore: -1 })
             .limit(10)
-            .select('username highScore level -_id') // Bỏ _id cho gọn
-            .lean(); 
+            .select('username fullName highScore level tierName -_id')
+            .lean();
     } catch (error) {
         console.error("❌ Lỗi lấy bảng xếp hạng:", error);
         throw error;
@@ -58,15 +78,13 @@ export const getGlobalLeaderboard = async () => {
 
 /**
  * Lấy lịch sử chơi gần đây của một user (10 lượt gần nhất)
- * username là string (không phải ObjectId)
  */
 export const getUserHistory = async (username) => {
     try {
-        const history = await Score.find({ username })
+        return await Score.find({ username })
             .sort({ playedAt: -1 })
             .limit(10)
             .select('gameType points accuracy playedAt');
-        return history;
     } catch (error) {
         throw new Error("Lỗi tải lịch sử chơi: " + error.message);
     }
@@ -97,7 +115,6 @@ export const getReportStats = async () => {
         const totalPoints = allScores.reduce((sum, s) => sum + (s.points || 0), 0);
         const avgScore = totalPlays > 0 ? Math.round(totalPoints / totalPlays) : 0;
 
-        // Lịch sử 10 lượt gần nhất (gộp tất cả user)
         const recentPlays = await Score.find()
             .sort({ playedAt: -1 })
             .limit(10)

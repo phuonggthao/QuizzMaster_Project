@@ -74,6 +74,9 @@ export const useQuiz = (gameType = 'Quiz') => {
 
             if (response.ok) {
                 setQuestions(data);
+            } else if (response.status === 401) {
+                // Token hết hạn — báo lỗi rõ để màn hình xử lý
+                throw new Error("TOKEN_EXPIRED");
             } else {
                 throw new Error(data.message || "Không thể tải câu hỏi từ hệ thống.");
             }

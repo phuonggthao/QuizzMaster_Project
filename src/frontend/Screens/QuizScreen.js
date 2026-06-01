@@ -50,6 +50,7 @@ export default function QuizScreen({ route, navigation }) {
   const [eliminatedOptions, setEliminatedOptions] = useState([]);
   // Lưu điểm thực tế đã cộng trong lượt này để hiển thị đúng trong feedback
   const [lastPointsEarned, setLastPointsEarned] = useState(0);
+  const [submitting, setSubmitting] = useState(false); // FIX #11: tránh submit nhiều lần
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -142,12 +143,6 @@ export default function QuizScreen({ route, navigation }) {
     setSessionCounts((prev) => ({ ...prev, eliminate: prev.eliminate - 1 }));
   };
 
-  const handleSkip = () => {
-    if (answered) return;
-    clearInterval(timerRef.current);
-    nextQuestion(score, correctCount);
-  };
-
   // ── Xử lý đáp án ─────────────────────────────────────────────────────────────
   /**
    * Kiểm tra đáp án đúng/sai theo từng loại game.
@@ -214,24 +209,33 @@ export default function QuizScreen({ route, navigation }) {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
+      if (submitting) return; // FIX #11: chặn submit nhiều lần
+      setSubmitting(true);
       if (timerRef.current) clearInterval(timerRef.current);
       try {
         const token = await AsyncStorage.getItem('userToken');
-        const userId = await AsyncStorage.getItem('userId');
-        await fetch(`${BASE_URL}/game/game-over`, {
+        const res = await fetch(`${BASE_URL}/game/game-over`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(token && token !== 'GUEST' ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
-            userId: token === 'GUEST' ? null : userId,
             gameType,
             correctAnswersCount: finalCorrectCount,
+            score: currentScore, // FIX #4: truyền điểm thực từ frontend
           }),
         });
+        // FIX #12: token hết hạn → redirect về Login
+        if (res.status === 401) {
+          await AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']);
+          navigation.replace('Login');
+          return;
+        }
       } catch (err) {
         console.warn('Lỗi lưu kết quả game:', err.message);
+      } finally {
+        setSubmitting(false);
       }
       navigation.navigate('Leaderboard', { score: currentScore, total: questions.length });
     }
@@ -249,6 +253,13 @@ export default function QuizScreen({ route, navigation }) {
   }
 
   if (error || questions.length === 0) {
+    // FIX #12: token hết hạn → về Login
+    if (error === 'TOKEN_EXPIRED') {
+      AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']).then(() => {
+        navigation.replace('Login');
+      });
+      return null;
+    }
     return (
       <View style={[styles.center, { backgroundColor: C.bgApp }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
@@ -446,14 +457,14 @@ export default function QuizScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Right: live players */}
+        {/* Right: progress info */}
         <View style={styles.liveCol}>
           <View style={[styles.liveAvatar, { backgroundColor: C.primary }]}>
-            <Text style={styles.liveAvatarText}>A</Text>
+            <Text style={styles.liveAvatarText}>{totalQuestions - currentIndex}</Text>
           </View>
           <View style={[styles.liveLine, { backgroundColor: C.border }]} />
-          <Text style={styles.liveIcon}>👥</Text>
-          <Text style={[styles.liveCount, { color: C.textMuted }]}>128 Live</Text>
+          <Text style={styles.liveIcon}>📝</Text>
+          <Text style={[styles.liveCount, { color: C.textMuted }]}>Còn lại</Text>
         </View>
       </View>
 
@@ -518,7 +529,9 @@ export default function QuizScreen({ route, navigation }) {
             onPress={() => nextQuestion(score, correctCount)}
             activeOpacity={0.85}
           >
-            <Text style={styles.feedbackBtnText}>Tiếp tục →</Text>
+            <Text style={styles.feedbackBtnText}>
+              {submitting ? 'Đang lưu...' : 'Tiếp tục →'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}

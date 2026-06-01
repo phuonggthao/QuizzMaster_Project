@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, ScrollView, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
 
@@ -11,18 +12,21 @@ export default function HomeScreen({ navigation }) {
   const { isDark, theme: C } = useTheme();
   const [loginStreak, setLoginStreak] = useState(0);
 
-  useEffect(() => {
-    const loadStreak = async () => {
-      try {
-        const raw = await AsyncStorage.getItem('userInfo');
-        if (raw) {
-          const info = JSON.parse(raw);
-          setLoginStreak(info.loginStreak || 0);
-        }
-      } catch (_) {}
-    };
-    loadStreak();
-  }, []);
+  // FIX #8: reload streak mỗi khi màn hình được focus (không chỉ lúc mount)
+  useFocusEffect(
+    useCallback(() => {
+      const loadStreak = async () => {
+        try {
+          const raw = await AsyncStorage.getItem('userInfo');
+          if (raw) {
+            const info = JSON.parse(raw);
+            setLoginStreak(info.loginStreak || 0);
+          }
+        } catch (_) {}
+      };
+      loadStreak();
+    }, [])
+  );
 
   const PLAY_MODES = [
     {
