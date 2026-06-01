@@ -11,37 +11,42 @@ export default function LoginScreen({ navigation }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const { isDark, theme: C, setIsAdmin } = useTheme();
+    const [errorMsg, setErrorMsg] = useState('');
+    const { isDark, theme: C, setIsAdmin, setAuthState } = useTheme();
 
     const handleLogin = async () => {
-        if (!username || !password) {
-            Alert.alert("Thiếu thông tin", "Vui lòng nhập tài khoản và mật khẩu!");
+        setErrorMsg('');
+        if (!username.trim() || !password.trim()) {
+            setErrorMsg('Vui lòng nhập tài khoản và mật khẩu!');
             return;
         }
         try {
             setLoading(true);
+            console.log('[Login] Gọi API:', `${BASE_URL}/auth/login`);
             const response = await fetch(`${BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username: username.trim(), password })
             });
             const data = await response.json();
+            console.log('[Login] Kết quả:', response.status, data);
             if (response.ok) {
                 await AsyncStorage.setItem('userToken', data.token);
                 if (data.user?._id) await AsyncStorage.setItem('userId', data.user._id);
                 await AsyncStorage.setItem('userInfo', JSON.stringify(data.user));
                 if (data.user.role === 'Admin') {
                     setIsAdmin(true);
-                    navigation.replace('Admin');
+                    setAuthState('admin');
                 } else {
                     setIsAdmin(false);
-                    navigation.replace('Landing');
+                    setAuthState('user');
                 }
             } else {
-                Alert.alert("Đăng nhập thất bại", data.message || "Sai tài khoản hoặc mật khẩu!");
+                setErrorMsg(data.message || 'Sai tài khoản hoặc mật khẩu!');
             }
-        } catch {
-            Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ.");
+        } catch (err) {
+            console.error('[Login] Lỗi:', err);
+            setErrorMsg('Không thể kết nối đến máy chủ. Hãy kiểm tra server đang chạy.');
         } finally {
             setLoading(false);
         }
@@ -49,21 +54,29 @@ export default function LoginScreen({ navigation }) {
 
     // Đăng nhập khách — không cần tài khoản
     const handleGuestLogin = async () => {
-        setIsAdmin(false);
-        await AsyncStorage.setItem('userToken', 'GUEST');
-        await AsyncStorage.setItem('userInfo', JSON.stringify({
-            fullName: 'Khách',
-            username: 'guest',
-            role: 'Guest',
-            highScore: 0,
-            level: 1,
-            tierName: 'Đồng',
-        }));
-        navigation.replace('Landing');
+        try {
+            setErrorMsg('');
+            setIsAdmin(false);
+            await AsyncStorage.setItem('userToken', 'GUEST');
+            await AsyncStorage.setItem('userInfo', JSON.stringify({
+                fullName: 'Khách',
+                username: 'guest',
+                role: 'Guest',
+                highScore: 0,
+                level: 1,
+                tierName: 'Đồng',
+            }));
+        } catch (err) {
+            console.warn('[GuestLogin] AsyncStorage lỗi:', err);
+        } finally {
+            setAuthState('guest');
+        }
     };
 
+    const Wrapper = Platform.OS === 'web' ? View : KeyboardAvoidingView;
+
     return (
-        <KeyboardAvoidingView
+        <Wrapper
             style={[styles.container, { backgroundColor: C.bgApp }]}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
@@ -107,6 +120,13 @@ export default function LoginScreen({ navigation }) {
                         />
                     </View>
 
+                    {/* Thông báo lỗi */}
+                    {errorMsg ? (
+                        <View style={[styles.errorBox, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }]}>
+                            <Text style={styles.errorText}>⚠️ {errorMsg}</Text>
+                        </View>
+                    ) : null}
+
                     <TouchableOpacity
                         style={[styles.btnPrimary, { backgroundColor: C.primary, shadowColor: C.primary }, loading && styles.btnDisabled]}
                         onPress={handleLogin}
@@ -144,7 +164,7 @@ export default function LoginScreen({ navigation }) {
                 </View>
 
             </ScrollView>
-        </KeyboardAvoidingView>
+        </Wrapper>
     );
 }
 
@@ -239,5 +259,19 @@ const styles = StyleSheet.create({
     },
     btnGuestText: {
         fontSize: 15, fontWeight: '700',
+    },
+
+    // Error box
+    errorBox: {
+        borderRadius: 10,
+        borderWidth: 1,
+        padding: 12,
+        marginBottom: 12,
+    },
+    errorText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#DC2626',
+        textAlign: 'center',
     },
 });

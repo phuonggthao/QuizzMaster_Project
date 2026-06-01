@@ -23,6 +23,7 @@ export function ThemeProvider({ children }) {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authState, setAuthState] = useState('loading'); // 'loading'|'none'|'guest'|'user'|'admin'
 
   // Power-ups settings
   const [powerUpsEnabled, setPowerUpsEnabled] = useState(true);
@@ -171,6 +172,8 @@ export function ThemeProvider({ children }) {
         DEFAULT_POWER_UP_COUNTS,
         isAdmin,
         setIsAdmin,
+        authState,
+        setAuthState,
       }}
     >
       {children}

@@ -7,13 +7,22 @@ import jwt from 'jsonwebtoken';
 const getUserRepo = () => new BaseRepository(User);
 
 export const register = async (req, res) => {
-   // if (mongoose.connection.readyState !== 1) {
-    //    return res.status(500).json({ message: "Database chưa sẵn sàng, hãy đợi 2 giây!" });
-  //  }
     try {
         const { username, password, fullName } = req.body;
-        // Chuẩn hóa input: xóa khoảng trắng thừa
-        const cleanUsername = username?.trim().toLowerCase();
+
+        // 1. Kiểm tra đầu vào hợp lệ
+        if (!username || !password || !fullName) {
+            return res.status(400).json({ message: "Vui lòng nhập đầy đủ họ tên, tên đăng nhập và mật khẩu!" });
+        }
+
+        const cleanUsername = username.trim().toLowerCase();
+        if (cleanUsername.length < 3) {
+            return res.status(400).json({ message: "Tên đăng nhập phải có ít nhất 3 ký tự!" });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: "Mật khẩu phải có ít nhất 6 ký tự!" });
+        }
         
         const userRepo = getUserRepo();
         const existingUser = await userRepo.findOne({ username: cleanUsername });
@@ -26,11 +35,15 @@ export const register = async (req, res) => {
         const user = await userRepo.create({ 
             username: cleanUsername, 
             password: hashedPassword, 
-            fullName,
+            fullName: fullName.trim(),
             role: 'User' // Mặc định là User
         });
         
-        res.status(201).json({ message: "Đăng ký thành công", user });
+        // 2. Bảo mật: Ẩn mật khẩu khi trả về client
+        const userResponse = { ...user };
+        delete userResponse.password;
+
+        res.status(201).json({ message: "Đăng ký thành công", user: userResponse });
     } catch (error) {
         res.status(500).json({ error: "Lỗi hệ thống: " + error.message });
     }
@@ -42,8 +55,13 @@ export const login = async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // 1. Kiểm tra username tồn tại
-        const user = await User.findOne({ username: username.toLowerCase() }).select('+password');
+        // 1. Kiểm tra đầu vào hợp lệ
+        if (!username || !password) {
+            return res.status(400).json({ message: "Vui lòng nhập tài khoản và mật khẩu!" });
+        }
+
+        // 2. Kiểm tra username tồn tại
+        const user = await User.findOne({ username: username.trim().toLowerCase() }).select('+password');
         if (!user) {
             return res.status(401).json({ message: "Sai tài khoản hoặc mật khẩu" });
         }

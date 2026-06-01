@@ -40,12 +40,25 @@ export default function QuizScreen({ route, navigation }) {
 
   // ── Power-up state ───────────────────────────────────────────────────────────
   const [doublePoints, setDoublePoints] = useState(false);
-  // Khởi tạo trực tiếp từ powerUpCounts — tránh render lần đầu hiện 0
+  // Khởi tạo từ powerUpCounts trong ThemeContext (đã load từ AsyncStorage / PowerUpsScreen)
   const [sessionCounts, setSessionCounts] = useState(() => ({
-    doublePoints: powerUpCounts.doublePoints ?? 2,
-    freeze: powerUpCounts.freeze ?? 1,
-    eliminate: powerUpCounts.eliminate ?? 1,
+    doublePoints: powerUpCounts?.doublePoints ?? 2,
+    freeze: powerUpCounts?.freeze ?? 1,
+    eliminate: powerUpCounts?.eliminate ?? 1,
   }));
+
+  // Đồng bộ lại sessionCounts khi powerUpCounts thay đổi (ví dụ sau khi settings load xong)
+  const sessionInitialized = useRef(false);
+  useEffect(() => {
+    if (!sessionInitialized.current && (powerUpCounts.doublePoints !== undefined)) {
+      setSessionCounts({
+        doublePoints: powerUpCounts.doublePoints,
+        freeze: powerUpCounts.freeze,
+        eliminate: powerUpCounts.eliminate,
+      });
+      sessionInitialized.current = true;
+    }
+  }, [powerUpCounts]);
   const [frozen, setFrozen] = useState(false);
   const [eliminatedOptions, setEliminatedOptions] = useState([]);
   // Lưu điểm thực tế đã cộng trong lượt này để hiển thị đúng trong feedback
@@ -526,7 +539,7 @@ export default function QuizScreen({ route, navigation }) {
                     : '#EF4444',
               },
             ]}
-            onPress={() => nextQuestion(score, correctCount)}
+            onPress={() => nextQuestion(scoreRef.current, correctCountRef.current)}
             activeOpacity={0.85}
           >
             <Text style={styles.feedbackBtnText}>

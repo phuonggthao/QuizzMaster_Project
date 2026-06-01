@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, SafeAreaView, StatusBar, ScrollView,
+  ActivityIndicator, Alert, SafeAreaView, StatusBar, ScrollView, Image, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import BASE_URL from '../config';
 import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
@@ -23,7 +24,8 @@ export default function ProfileScreen({ navigation }) {
   const [loginStreak, setLoginStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
-  const { isDark, theme: C, setIsAdmin } = useTheme();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const { isDark, theme: C, setIsAdmin, setAuthState } = useTheme();
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -39,30 +41,34 @@ export default function ProfileScreen({ navigation }) {
 
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Lấy thông tin user
-        const meRes = await fetch(`${BASE_URL}/auth/me`, { headers });
-        const meData = await meRes.json();
-        if (meRes.ok) {
-          setUser(meData.user);
-          setLoginStreak(meData.user?.loginStreak || 0);
-        } else if (meRes.status === 401) {
-          // Token hết hạn → về Login
+        // Tải song song tất cả API để giảm thời gian chờ đợi (tăng tốc x3 lần)
+        const [meRes, statsRes, histRes] = await Promise.all([
+          fetch(`${BASE_URL}/auth/me`, { headers }),
+          fetch(`${BASE_URL}/user/stats`, { headers }),
+          fetch(`${BASE_URL}/user/history`, { headers })
+        ]);
+
+        if (meRes.status === 401 || statsRes.status === 401 || histRes.status === 401) {
+          // Token hết hạn hoặc không hợp lệ → chuyển hướng về Login
           await AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']);
-          navigation.replace('Login');
+          setIsAdmin(false);
+          setAuthState('none');
           return;
-        } else {
+        }
+
+        if (!meRes.ok) {
           throw new Error('Không tải được hồ sơ');
         }
 
-        // Lấy stats thật (tổng lượt chơi, tổng điểm)
-        const statsRes = await fetch(`${BASE_URL}/user/stats`, { headers });
+        const meData = await meRes.json();
+        setUser(meData.user);
+        setLoginStreak(meData.user?.loginStreak || 0);
+
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats({ totalPlays: statsData.totalPlays || 0, totalPoints: statsData.totalPoints || 0 });
         }
 
-        // Lấy lịch sử chơi thật
-        const histRes = await fetch(`${BASE_URL}/user/history`, { headers });
         if (histRes.ok) {
           const histData = await histRes.json();
           setHistory(histData);
@@ -76,18 +82,85 @@ export default function ProfileScreen({ navigation }) {
     fetchAll();
   }, []);
 
-  const handleLogout = async () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
-      { text: 'Huỷ', style: 'cancel' },
-      {
-        text: 'Đăng xuất', style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.clear();
-          setIsAdmin(false);
-          navigation.replace('Login');
+  const handlePickAvatar = async () => {
+    if (isGuest) {
+      Alert.alert('Thông báo', 'Vui lòng đăng nhập để thay đổi ảnh đại diện.');
+      return;
+    }
+
+    // Xin quyền truy cập thư viện ảnh
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Cần quyền truy cập', 'Vui lòng cho phép ứng dụng truy cập thư viện ảnh trong cài đặt.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setUploadingAvatar(true);
+
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: asset.uri,
+        name: 'avatar.jpg',
+        type: 'image/jpeg',
+      });
+
+      const res = await fetch(`${BASE_URL}/user/avatar`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
-      },
-    ]);
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setUser(prev => ({ ...prev, avatar: data.avatar }));
+        Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện!');
+      } else {
+        Alert.alert('Lỗi', data.message || 'Không thể cập nhật ảnh.');
+      }
+    } catch (e) {
+      Alert.alert('Lỗi mạng', 'Không thể kết nối đến máy chủ.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    const performLogout = async () => {
+      // Chỉ xóa thông tin đăng nhập, giữ lại settings (theme, nhạc, v.v.)
+      await AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']);
+      setIsAdmin(false);
+      setAuthState('none');
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmLogout = window.confirm('Bạn có chắc muốn đăng xuất?');
+      if (confirmLogout) {
+        await performLogout();
+      }
+    } else {
+      Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
+        { text: 'Huỷ', style: 'cancel' },
+        {
+          text: 'Đăng xuất', style: 'destructive',
+          onPress: performLogout,
+        },
+      ]);
+    }
   };
 
   if (loading) {
@@ -129,9 +202,21 @@ export default function ProfileScreen({ navigation }) {
         {/* Profile header */}
         <View style={[styles.profileHeader, { backgroundColor: C.bgCard, borderBottomColor: C.border }]}>
           <View style={styles.avatarWrap}>
-            <View style={[styles.avatar, { backgroundColor: C.primaryLight, borderColor: C.primary }]}>
-              <Text style={[styles.avatarText, { color: C.primary }]}>{avatarLetter}</Text>
-            </View>
+            <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.85} disabled={uploadingAvatar}>
+              <View style={[styles.avatar, { backgroundColor: C.primaryLight, borderColor: C.primary }]}>
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={[styles.avatarText, { color: C.primary }]}>{avatarLetter}</Text>
+                )}
+                <View style={[styles.cameraOverlay, { backgroundColor: C.primary }]}>
+                  {uploadingAvatar
+                    ? <ActivityIndicator size={10} color="#fff" />
+                    : <Text style={styles.cameraIcon}>📷</Text>
+                  }
+                </View>
+              </View>
+            </TouchableOpacity>
             <View style={styles.streakBadge}>
               <Text style={styles.streakBadgeText}>Lv.{user?.level || 1} {user?.tierName || 'Đồng'}</Text>
             </View>
@@ -317,8 +402,16 @@ const styles = StyleSheet.create({
 
   profileHeader: { flexDirection: 'row', padding: 20, gap: 16, borderBottomWidth: 1 },
   avatarWrap: { alignItems: 'center' },
-  avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', borderWidth: 3, marginBottom: 6 },
+  avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', borderWidth: 3, marginBottom: 6, overflow: 'hidden' },
   avatarText: { fontSize: 32, fontWeight: '900' },
+  avatarImage: { width: 80, height: 80, borderRadius: 40 },
+  cameraOverlay: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 24, height: 24, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#fff',
+  },
+  cameraIcon: { fontSize: 11 },
   streakBadge: { backgroundColor: '#1E3A5F', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   streakBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
   profileInfo: { flex: 1 },

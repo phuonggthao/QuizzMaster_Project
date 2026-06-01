@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { mongoose } from '../../Api/mongoClient.js';
 
 const CategorySchema = new mongoose.Schema({
     name: { 

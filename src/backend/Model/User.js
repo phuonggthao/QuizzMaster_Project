@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema({
     highScore: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
     tierName: { type: String, default: 'Đồng' },
+    avatar: { type: String, default: null }, // URL ảnh đại diện từ Cloudinary
     loginStreak: { type: Number, default: 0 },
     longestStreak: { type: Number, default: 0 },
     lastLoginDate: { type: Date, default: null }

@@ -84,7 +84,8 @@ export const getUserHistory = async (username) => {
         return await Score.find({ username })
             .sort({ playedAt: -1 })
             .limit(10)
-            .select('gameType points accuracy playedAt');
+            .select('gameType points accuracy playedAt')
+            .lean();
     } catch (error) {
         throw new Error("Lỗi tải lịch sử chơi: " + error.message);
     }
@@ -95,10 +96,23 @@ export const getUserHistory = async (username) => {
  */
 export const getUserStats = async (username) => {
     try {
-        const scores = await Score.find({ username });
-        const totalPlays = scores.length;
-        const totalPoints = scores.reduce((sum, s) => sum + (s.points || 0), 0);
-        return { totalPlays, totalPoints };
+        const result = await Score.aggregate([
+            { $match: { username } },
+            {
+                $group: {
+                    _id: null,
+                    totalPlays: { $sum: 1 },
+                    totalPoints: { $sum: '$points' }
+                }
+            }
+        ]);
+        if (result.length === 0) {
+            return { totalPlays: 0, totalPoints: 0 };
+        }
+        return {
+            totalPlays: result[0].totalPlays || 0,
+            totalPoints: result[0].totalPoints || 0
+        };
     } catch (error) {
         throw new Error("Lỗi tải thống kê user: " + error.message);
     }
@@ -118,9 +132,33 @@ export const getReportStats = async () => {
         const recentPlays = await Score.find()
             .sort({ playedAt: -1 })
             .limit(10)
-            .select('gameType points playedAt username');
+            .select('gameType points playedAt username')
+            .lean();
 
-        return { totalPlays, totalUsers, avgScore, recentPlays };
+        // Lấy danh sách username duy nhất trong 10 lượt chơi gần nhất
+        const usernames = [...new Set(recentPlays.map(p => p.username).filter(Boolean))];
+
+        // Tìm thông tin full name của các users tương ứng
+        const users = await User.find({ username: { $in: usernames } })
+            .select('username fullName')
+            .lean();
+
+        // Tạo map để tra cứu thông tin nhanh chóng
+        const userMap = {};
+        users.forEach(u => {
+            userMap[u.username] = u.fullName || u.username;
+        });
+
+        // Ánh xạ lại cấu trúc recentPlays để giữ tương thích ngược hoàn hảo với property play.userId của frontend
+        const recentWithUser = recentPlays.map(play => ({
+            ...play,
+            userId: {
+                username: play.username,
+                fullName: userMap[play.username] || play.username
+            }
+        }));
+
+        return { totalPlays, totalUsers, avgScore, recentPlays: recentWithUser };
     } catch (error) {
         throw new Error("Lỗi tải báo cáo: " + error.message);
     }

@@ -1,8 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, ScrollView, Switch, Alert,
-  PanResponder, Platform, UIManager,
+  Platform, UIManager,
 } from 'react-native';
 import { useTheme, DEFAULT_POWER_UP_COUNTS } from '../context/ThemeContext';
 
@@ -43,62 +43,78 @@ const MEME_SETS = [
 
 const MUSIC_OPTIONS = ['Lofi Học Tập', 'Nhạc Cổ Điển', 'Nhạc Thiên Nhiên', 'Không có nhạc'];
 
-// ─── Slider component dùng PanResponder ───────────────────────────────────────
-function VolumeSlider({ value, onChange, primaryColor, trackColor }) {
-  const trackWidth = useRef(0);
-  const currentValue = useRef(value);
+// ─── Slider component — dùng Responder API trực tiếp, không PanResponder ──────
+// Tương thích với New Architecture (Fabric / newArchEnabled: true)
+function VolumeSlider({ value, onChange, primaryColor, trackColor, onDragStart, onDragEnd }) {
+  const hitRef = useRef(null);
+  const layoutCache = useRef({ x: 0, width: 0 });
+  const isDragging = useRef(false);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        // Tính vị trí từ điểm chạm ban đầu
-        if (trackWidth.current > 0) {
-          const locationX = evt.nativeEvent.locationX;
-          const newVal = Math.round(Math.min(100, Math.max(0, (locationX / trackWidth.current) * 100)));
-          currentValue.current = newVal;
-          onChange(newVal);
-        }
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (trackWidth.current > 0) {
-          const locationX = evt.nativeEvent.locationX;
-          const newVal = Math.round(Math.min(100, Math.max(0, (locationX / trackWidth.current) * 100)));
-          currentValue.current = newVal;
-          onChange(newVal);
-        }
-      },
-    })
-  ).current;
+  const calcValue = useCallback((pageX) => {
+    const { x, width } = layoutCache.current;
+    if (width === 0) return value;
+    const relative = pageX - x;
+    return Math.round(Math.min(100, Math.max(0, (relative / width) * 100)));
+  }, [value]);
+
+  const measureAndSet = useCallback((pageX) => {
+    if (hitRef.current) {
+      hitRef.current.measure((_x, _y, width, _h, absX) => {
+        layoutCache.current = { x: absX, width };
+        const v = Math.round(Math.min(100, Math.max(0, ((pageX - absX) / width) * 100)));
+        onChange(v);
+      });
+    }
+  }, [onChange]);
 
   const fillPercent = Math.min(100, Math.max(0, value));
 
   return (
     <View style={sliderStyles.wrapper}>
       <Text style={sliderStyles.icon}>🔈</Text>
+
       <View
-        style={[sliderStyles.track, { backgroundColor: trackColor }]}
-        onLayout={(e) => { trackWidth.current = e.nativeEvent.layout.width; }}
-        {...panResponder.panHandlers}
+        ref={hitRef}
+        style={sliderStyles.hitArea}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(e) => {
+          isDragging.current = true;
+          onDragStart?.();
+          // Đo lại vị trí mỗi lần grant để tránh sai lệch sau scroll
+          measureAndSet(e.nativeEvent.pageX);
+        }}
+        onResponderMove={(e) => {
+          if (!isDragging.current) return;
+          const { x, width } = layoutCache.current;
+          if (width === 0) return;
+          const v = Math.round(Math.min(100, Math.max(0, ((e.nativeEvent.pageX - x) / width) * 100)));
+          onChange(v);
+        }}
+        onResponderRelease={() => {
+          isDragging.current = false;
+          onDragEnd?.();
+        }}
+        onResponderTerminate={() => {
+          isDragging.current = false;
+          onDragEnd?.();
+        }}
       >
-        {/* Fill */}
-        <View
-          style={[
-            sliderStyles.fill,
-            { width: `${fillPercent}%`, backgroundColor: primaryColor },
-          ]}
-        />
-        {/* Thumb — dùng left tính bằng số thực thay vì % string */}
-        <View
-          style={[
-            sliderStyles.thumbContainer,
-            { left: `${fillPercent}%` },
-          ]}
-        >
-          <View style={[sliderStyles.thumb, { backgroundColor: primaryColor }]} />
+        {/* Track visual */}
+        <View style={[sliderStyles.track, { backgroundColor: trackColor }]}>
+          <View
+            style={[sliderStyles.fill, { width: `${fillPercent}%`, backgroundColor: primaryColor }]}
+          />
+          {/* Thumb */}
+          <View
+            style={[
+              sliderStyles.thumbContainer,
+              { left: `${fillPercent}%`, backgroundColor: primaryColor },
+            ]}
+          />
         </View>
       </View>
+
       <Text style={sliderStyles.icon}>🔊</Text>
       <Text style={[sliderStyles.valueText, { color: primaryColor }]}>{fillPercent}%</Text>
     </View>
@@ -114,8 +130,13 @@ const sliderStyles = StyleSheet.create({
     gap: 10,
   },
   icon: { fontSize: 18 },
-  track: {
+  // Vùng hit cao hơn track để ngón tay dễ chạm
+  hitArea: {
     flex: 1,
+    height: 32,
+    justifyContent: 'center',
+  },
+  track: {
     height: 8,
     borderRadius: 4,
     position: 'relative',
@@ -124,25 +145,23 @@ const sliderStyles = StyleSheet.create({
   fill: {
     height: 8,
     borderRadius: 4,
+    position: 'absolute',
+    left: 0,
+    top: 0,
   },
-  // Container căn giữa thumb theo chiều dọc, dùng translateX để offset đúng
+  // Thumb dùng % left — không cần đo pixel
   thumbContainer: {
     position: 'absolute',
-    top: '50%',
-    width: 0,
-    alignItems: 'center',
-    // translateY để căn giữa thumb (thumb cao 20px → -10)
-    transform: [{ translateY: -10 }],
-  },
-  thumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    elevation: 3,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    top: -7,
+    marginLeft: -11, // căn giữa thumb theo điểm left
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   valueText: {
     fontSize: 12,
@@ -165,6 +184,8 @@ export default function PowerUpsScreen({ navigation }) {
   } = useTheme();
 
   const [activeMeme, setActiveMeme] = useState('1');
+  // Tắt scroll khi đang kéo slider để tránh conflict gesture
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const handleSave = () => {
     Alert.alert('✅ Đã lưu', 'Cài đặt của bạn đã được lưu thành công.', [
@@ -180,6 +201,9 @@ export default function PowerUpsScreen({ navigation }) {
       return { ...prev, [id]: next };
     });
   };
+
+  const handleSliderDragStart = useCallback(() => setScrollEnabled(false), []);
+  const handleSliderDragEnd = useCallback(() => setScrollEnabled(true), []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>
@@ -204,6 +228,8 @@ export default function PowerUpsScreen({ navigation }) {
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        scrollEnabled={scrollEnabled}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Power-ups section */}
         <View style={styles.sectionHeader}>
@@ -366,7 +392,7 @@ export default function PowerUpsScreen({ navigation }) {
 
           <View style={[styles.divider, { backgroundColor: C.border }]} />
 
-          {/* Volume slider — có thể kéo được */}
+          {/* Volume slider */}
           <View style={[styles.settingRow, { paddingBottom: 8 }, !musicEnabled && { opacity: 0.4 }]}>
             <Text style={[styles.settingLabel, { color: C.textPrimary }]}>Âm lượng</Text>
           </View>
@@ -376,6 +402,8 @@ export default function PowerUpsScreen({ navigation }) {
               onChange={musicEnabled ? setVolume : () => {}}
               primaryColor={C.primary}
               trackColor={C.border}
+              onDragStart={handleSliderDragStart}
+              onDragEnd={handleSliderDragEnd}
             />
           </View>
 
@@ -426,7 +454,7 @@ export default function PowerUpsScreen({ navigation }) {
 
       </ScrollView>
 
-      {/* Footer buttons */}
+      {/* Footer buttons — zIndex đảm bảo không bị che bởi card bên trong scroll */}
       <View style={[styles.footer, { backgroundColor: C.bgApp, borderTopColor: C.border }]}>
         <TouchableOpacity
           style={[styles.cancelBtn, { borderColor: C.border, backgroundColor: C.bgCard }]}
@@ -617,6 +645,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
     borderTopWidth: 1,
+    // Đảm bảo footer luôn nằm trên cùng, không bị card elevation che
+    zIndex: 10,
+    elevation: 10,
+    backgroundColor: 'transparent', // sẽ bị override bởi inline style
   },
   cancelBtn: {
     flex: 1,

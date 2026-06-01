@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { mongoose } from '../../Api/mongoClient.js';
 
 const ScoreSchema = new mongoose.Schema({
     username: { // Đổi userId thành username
