@@ -67,7 +67,7 @@ export default function QuizScreen({ route, navigation }) {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchQuestions();
+    //fetchQuestions();
     return () => clearInterval(timerRef.current);
   }, []);
 

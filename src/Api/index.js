@@ -1,35 +1,36 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import cors from 'cors';
 import { connectDatabase } from './mongoClient.js';
+import mongoose from 'mongoose';
 import apiRouter from './routes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-dotenv.config({ path: resolve(__dirname, '../../.env') });
+console.log("🔥 ĐANG CHẠY ĐÚNG FILE INDEX.JS NÀY!");
+//mongoose.set('bufferCommands', false);
 
+dotenv.config();
 const app = express();
-app.use(express.json());
 
-// ✅ CORS
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') return res.sendStatus(200);
-    next();
-});
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
-// ✅ Kết nối Database
-connectDatabase();
 
-// ✅ Sử dụng router thống nhất
-app.use('/api', apiRouter);
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server đang chạy trên cổng ${PORT}`);
-});
-
-export default app;
+ app.use('/api', apiRouter);
+const startServer = async () => {
+    try {
+        // CHẶN MỌI THỨ CHO ĐẾN KHI KẾT NỐI XONG
+        await connectDatabase();
+        
+        console.log("🚀 Mọi thứ sẵn sàng, đang khởi động Server...");
+        const { default: apiRouter } = await import('./routes.js');
+     
+        
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => console.log(`🚀 Server đã sẵn sàng tại http://localhost:${PORT}`));
+       
+    } catch (err) {
+        console.error("❌ Lỗi nghiêm trọng, dừng server:", err);
+        process.exit(1); // Dừng hoàn toàn để bạn không phải đợi lâu
+    }
+};
+startServer();

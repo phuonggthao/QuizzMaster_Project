@@ -15,8 +15,12 @@ ipconfig -> đổi lại ip trong config.js
 
  cài thư viện 
  npm install @react-navigation/native @react-navigation/stack --legacy-peer-deps
+ 
  npx expo install react-native-screens react-native-safe-area-context -- --legacy-peer-deps
- npm install express mongoose mongodb cors dotenv bcryptjs jsonwebtoken multer multer-storage-cloudinary cloudinary
+ 
+ npm install express mongoose mongodb cors dotenv bcryptjs jsonwebtoken multer 
+ 
+ npm install multer-storage-cloudinary cloudinary
 
  npm install expo react react-native react-native-paper @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs @react-navigation/stack @react-native-async-storage/async-storage @react-native-picker/picker expo-blur expo-status-bar react-native-safe-area-context react-native-screens react-native-vector-icons react-native-web react-dom
 
