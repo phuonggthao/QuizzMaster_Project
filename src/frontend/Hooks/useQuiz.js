@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
 
@@ -44,7 +44,7 @@ export const useQuiz = (gameType = 'Quiz') => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchQuestions = async () => {
+    const fetchQuestions = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -85,7 +85,7 @@ export const useQuiz = (gameType = 'Quiz') => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [gameType]);
 
     return {
         questions,

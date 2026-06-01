@@ -69,7 +69,7 @@ export default function QuizScreen({ route, navigation }) {
   useEffect(() => {
     fetchQuestions();
     return () => clearInterval(timerRef.current);
-  }, []);
+  }, [fetchQuestions]);
 
   useEffect(() => {
     if (questions.length === 0 || loading) return;
