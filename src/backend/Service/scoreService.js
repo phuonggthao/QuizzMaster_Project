@@ -68,7 +68,7 @@ export const getGlobalLeaderboard = async () => {
         return await User.find({ role: 'User', highScore: { $gt: 0 } })
             .sort({ highScore: -1 })
             .limit(10)
-            .select('username fullName highScore level tierName -_id')
+            .select('username fullName highScore level tierName')
             .lean();
     } catch (error) {
         console.error("❌ Lỗi lấy bảng xếp hạng:", error);

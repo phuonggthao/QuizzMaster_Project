@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    Alert, StyleSheet, ScrollView, StatusBar, KeyboardAvoidingView, Platform
+    Alert, StyleSheet, ScrollView, StatusBar,
+    KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
 import BASE_URL from '../config';
 import { useTheme } from '../context/ThemeContext';
@@ -41,12 +42,13 @@ export default function RegisterScreen({ navigation }) {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1, backgroundColor: C.bgApp }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
-            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.primary }}>
+            <StatusBar barStyle="light-content" backgroundColor={C.primary} />
+            <KeyboardAvoidingView
+                style={{ flex: 1, backgroundColor: C.bgApp }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
                 {/* Header tím */}
                 <View style={[styles.header, { backgroundColor: C.primary }]}>
@@ -123,7 +125,8 @@ export default function RegisterScreen({ navigation }) {
                 </View>
 
             </ScrollView>
-        </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
     scroll: { flexGrow: 1 },
 
     header: {
-        paddingTop: 60,
+        paddingTop: 32,
         paddingBottom: 48,
         alignItems: 'center',
         borderBottomLeftRadius: 36,

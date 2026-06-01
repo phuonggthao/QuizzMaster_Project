@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   container: { gap: 16 },
 
   cardWrapper: {
-    height: 180,
+    minHeight: 160,
     position: 'relative',
   },
 
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     padding: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 180,
+    minHeight: 160,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },

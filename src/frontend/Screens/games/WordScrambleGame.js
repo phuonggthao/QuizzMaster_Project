@@ -78,7 +78,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrambleLabel: { fontSize: 11, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 },
-  scrambleWord: { fontSize: 28, fontWeight: '900', letterSpacing: 6 },
+  scrambleWord: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 4,
+    flexShrink: 1,
+    textAlign: 'center',
+  },
   input: {
     borderRadius: 14,
     paddingHorizontal: 16,

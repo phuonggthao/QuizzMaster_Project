@@ -21,6 +21,7 @@ import QuestionTypeScreen from './src/frontend/Screens/QuestionTypeScreen';
 import ReportScreen from './src/frontend/Screens/ReportScreen';
 import LuckyNumberScreen from './src/frontend/Screens/LuckyNumberScreen';
 import CategoryScreen from './src/frontend/Screens/CategoryScreen';
+import GlobalLeaderboardScreen from './src/frontend/Screens/GlobalLeaderboardScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -125,6 +126,7 @@ function AppNavigator({ navigationRef }) {
         <Stack.Screen name="Report" component={ReportScreen} />
         <Stack.Screen name="LuckyNumber" component={LuckyNumberScreen} />
         <Stack.Screen name="Category" component={CategoryScreen} />
+        <Stack.Screen name="GlobalLeaderboard" component={GlobalLeaderboardScreen} />
       </Stack.Navigator>
     </>
   );

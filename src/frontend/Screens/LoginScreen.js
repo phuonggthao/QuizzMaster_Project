@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    Alert, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ScrollView
+    Alert, StyleSheet, KeyboardAvoidingView, Platform,
+    StatusBar, ScrollView, SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
@@ -76,12 +77,13 @@ export default function LoginScreen({ navigation }) {
     const Wrapper = Platform.OS === 'web' ? View : KeyboardAvoidingView;
 
     return (
-        <Wrapper
-            style={[styles.container, { backgroundColor: C.bgApp }]}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={C.bgApp} />
-            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: C.primary }]}>
+            <StatusBar barStyle="light-content" backgroundColor={C.primary} />
+            <Wrapper
+                style={[styles.container, { backgroundColor: C.bgApp }]}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
                 {/* Header tím */}
                 <View style={[styles.header, { backgroundColor: C.primary }]}>
@@ -164,12 +166,16 @@ export default function LoginScreen({ navigation }) {
                 </View>
 
             </ScrollView>
-        </Wrapper>
+            </Wrapper>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+    },
+    safeArea: {
         flex: 1,
     },
     scroll: {
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
 
     // Header tím bo góc dưới
     header: {
-        paddingTop: 60,
+        paddingTop: 32,
         paddingBottom: 48,
         alignItems: 'center',
         borderBottomLeftRadius: 36,

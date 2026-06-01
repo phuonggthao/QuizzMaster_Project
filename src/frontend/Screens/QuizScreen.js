@@ -485,6 +485,7 @@ export default function QuizScreen({ route, navigation }) {
       <ScrollView
         style={styles.answerScroll}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.answerScrollContent,
           answered && { paddingBottom: 100 },
@@ -642,7 +643,7 @@ const styles = StyleSheet.create({
   submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
   feedbackBanner: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    position: 'absolute',
     bottom: 0, left: 0, right: 0,
     zIndex: 9999,
     flexDirection: 'row', alignItems: 'center',

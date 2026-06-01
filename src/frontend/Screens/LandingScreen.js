@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  SafeAreaView, StatusBar, ScrollView, Alert,
+  SafeAreaView, StatusBar, ScrollView, Alert, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
@@ -71,6 +71,8 @@ export default function LandingScreen({ navigation }) {
             </View>
           </View>
 
+          {/* Ẩn cột phải trên mobile nhỏ để tránh vỡ layout */}
+          {Platform.OS === 'web' && (
           <View style={styles.heroRight}>
             <View style={[styles.heroImage, { backgroundColor: C.primaryLight }]}>
               <Text style={styles.heroImageEmoji}>📱</Text>
@@ -83,6 +85,7 @@ export default function LandingScreen({ navigation }) {
               </View>
             </View>
           </View>
+          )}
         </View>
 
         {/* Trending Quizzes */}
@@ -344,9 +347,9 @@ const styles = StyleSheet.create({
   trendingSmallTitle: { fontSize: 12, fontWeight: '700', marginBottom: 2 },
   trendingSmallMeta: { fontSize: 10 },
 
-  // Features
+  // Features — 1 cột trên mobile, 3 cột trên web
   featuresRow: {
-    flexDirection: 'row',
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     paddingHorizontal: 20,
     gap: 12,
     marginBottom: 32,
@@ -380,7 +383,7 @@ const styles = StyleSheet.create({
   },
   ctaTitle: { fontSize: 20, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 10 },
   ctaSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 18, marginBottom: 20 },
-  ctaButtons: { flexDirection: 'row', gap: 12 },
+  ctaButtons: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', justifyContent: 'center' },
   ctaBtnWhite: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
@@ -407,6 +410,6 @@ const styles = StyleSheet.create({
   },
   footerLogo: { fontSize: 16, fontWeight: '900' },
   footerCopy: { fontSize: 11 },
-  footerLinks: { flexDirection: 'row', gap: 16, marginTop: 4 },
+  footerLinks: { flexDirection: 'row', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' },
   footerLink: { fontSize: 11, fontWeight: '600' },
 });
