@@ -1,13 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, ScrollView, Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import AppHeader from '../Components/AppHeader';
 
 export default function HomeScreen({ navigation }) {
   const { isDark, theme: C } = useTheme();
+  const [loginStreak, setLoginStreak] = useState(0);
+
+  useEffect(() => {
+    const loadStreak = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('userInfo');
+        if (raw) {
+          const info = JSON.parse(raw);
+          setLoginStreak(info.loginStreak || 0);
+        }
+      } catch (_) {}
+    };
+    loadStreak();
+  }, []);
 
   const PLAY_MODES = [
     {
@@ -179,12 +194,18 @@ export default function HomeScreen({ navigation }) {
             <Text style={{ fontSize: 22 }}>⚡</Text>
           </View>
           <View style={styles.streakInfo}>
-            <Text style={styles.streakTitle}>5 Day Streak!</Text>
-            <Text style={styles.streakDesc}>Play any mode today to keep your streak alive and earn 2x XP.</Text>
+            <Text style={styles.streakTitle}>
+              {loginStreak > 0 ? `${loginStreak} Day Streak!` : 'Start Your Streak!'}
+            </Text>
+            <Text style={styles.streakDesc}>
+              {loginStreak > 0
+                ? 'Play any mode today to keep your streak alive and earn 2x XP.'
+                : 'Log in every day to build your streak and earn bonus XP.'}
+            </Text>
           </View>
           <View style={styles.streakDots}>
             {[1,2,3,4,5,6,7].map((d) => (
-              <View key={d} style={[styles.streakDot, d <= 5 && styles.streakDotActive]} />
+              <View key={d} style={[styles.streakDot, d <= loginStreak && styles.streakDotActive]} />
             ))}
           </View>
         </View>

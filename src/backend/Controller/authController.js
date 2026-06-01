@@ -56,18 +56,61 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: "Sai tài khoản hoặc mật khẩu" });
         }
 
-        // 3. Tạo JWT Token nếu mật khẩu đúng
+        // 3. Tính login streak
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+        const lastLogin = user.lastLoginDate;
+        const lastLoginStr = lastLogin ? lastLogin.toISOString().slice(0, 10) : null;
+
+        let newStreak = user.loginStreak || 0;
+
+        if (lastLoginStr === null) {
+            // Lần đầu đăng nhập
+            newStreak = 1;
+        } else if (lastLoginStr === todayStr) {
+            // Đã đăng nhập hôm nay rồi, giữ nguyên streak
+            newStreak = user.loginStreak || 1;
+        } else {
+            // Kiểm tra hôm qua
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+            if (lastLoginStr === yesterdayStr) {
+                // Đăng nhập liên tiếp — tăng streak
+                newStreak = (user.loginStreak || 0) + 1;
+            } else {
+                // Bỏ lỡ ít nhất 1 ngày — reset streak
+                newStreak = 1;
+            }
+        }
+
+        const newLongest = Math.max(newStreak, user.longestStreak || 0);
+
+        // Chỉ cập nhật DB nếu có thay đổi
+        if (lastLoginStr !== todayStr) {
+            await User.findByIdAndUpdate(user._id, {
+                loginStreak: newStreak,
+                longestStreak: newLongest,
+                lastLoginDate: now,
+            });
+        }
+
+        // 4. Tạo JWT Token nếu mật khẩu đúng
         const token = jwt.sign(
             { id: user._id, role: user.role || 'User' }, 
             process.env.JWT_SECRET , 
             { expiresIn: '1d' }
         );
         
-        // 4. Chuẩn bị dữ liệu trả về (xóa password)
+        // 5. Chuẩn bị dữ liệu trả về (xóa password)
         const userResponse = user.toObject();
         delete userResponse.password;
+        userResponse.loginStreak = newStreak;
+        userResponse.longestStreak = newLongest;
+        userResponse.lastLoginDate = now;
 
-        // 5. Phản hồi thành công
+        // 6. Phản hồi thành công
         return res.status(200).json({ 
             message: "Đăng nhập thành công", 
             token, 

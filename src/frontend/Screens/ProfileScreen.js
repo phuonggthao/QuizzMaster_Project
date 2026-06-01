@@ -20,9 +20,10 @@ export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ totalPlays: 0, totalPoints: 0 });
+  const [loginStreak, setLoginStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
-  const { isDark, theme: C } = useTheme();
+  const { isDark, theme: C, setIsAdmin } = useTheme();
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -31,6 +32,7 @@ export default function ProfileScreen({ navigation }) {
         if (token === 'GUEST') {
           setIsGuest(true);
           setUser({ fullName: 'Khách', username: 'guest', highScore: 0, level: 1, tierName: 'Đồng' });
+          setLoginStreak(0);
           setLoading(false);
           return;
         }
@@ -40,7 +42,10 @@ export default function ProfileScreen({ navigation }) {
         // Lấy thông tin user
         const meRes = await fetch(`${BASE_URL}/auth/me`, { headers });
         const meData = await meRes.json();
-        if (meRes.ok) setUser(meData.user);
+        if (meRes.ok) {
+          setUser(meData.user);
+          setLoginStreak(meData.user?.loginStreak || 0);
+        }
         else throw new Error('Không tải được hồ sơ');
 
         // Lấy stats thật (tổng lượt chơi, tổng điểm)
@@ -72,6 +77,7 @@ export default function ProfileScreen({ navigation }) {
         text: 'Đăng xuất', style: 'destructive',
         onPress: async () => {
           await AsyncStorage.clear();
+          setIsAdmin(false);
           navigation.replace('Login');
         },
       },
@@ -184,6 +190,30 @@ export default function ProfileScreen({ navigation }) {
             </View>
           </View>
         </View>
+
+        {/* Streak Banner */}
+        {!isGuest && (
+          <View style={[styles.streakBanner, { backgroundColor: C.primary, shadowColor: C.primary }]}>
+            <View style={styles.streakIconWrap}>
+              <Text style={{ fontSize: 22 }}>🔥</Text>
+            </View>
+            <View style={styles.streakInfo}>
+              <Text style={styles.streakTitle}>
+                {loginStreak > 0 ? `${loginStreak} ngày liên tiếp!` : 'Bắt đầu chuỗi ngay!'}
+              </Text>
+              <Text style={styles.streakDesc}>
+                {loginStreak > 0
+                  ? `Kỷ lục: ${user?.longestStreak || loginStreak} ngày. Đăng nhập mỗi ngày để duy trì!`
+                  : 'Đăng nhập mỗi ngày để nhận thưởng XP.'}
+              </Text>
+            </View>
+            <View style={styles.streakDots}>
+              {[1,2,3,4,5,6,7].map((d) => (
+                <View key={d} style={[styles.streakDot, d <= loginStreak && styles.streakDotActive]} />
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Recent History — từ MongoDB */}
         <View style={styles.historySection}>
@@ -335,6 +365,25 @@ const styles = StyleSheet.create({
   replayBtnText: { fontSize: 12, fontWeight: '700' },
 
   actionSection: { paddingHorizontal: 20, marginBottom: 24 },
+  streakBanner: {
+    marginHorizontal: 20, marginBottom: 20,
+    borderRadius: 16, padding: 18,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8,
+  },
+  streakIconWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  streakInfo: { flex: 1 },
+  streakTitle: { fontSize: 15, fontWeight: '900', color: '#fff', marginBottom: 3 },
+  streakDesc: { fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 15 },
+  streakDots: { flexDirection: 'row', gap: 4 },
+  streakDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.3)' },
+  streakDotActive: { backgroundColor: '#fff' },
   loginBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', elevation: 4, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
   loginBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   logoutBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5 },

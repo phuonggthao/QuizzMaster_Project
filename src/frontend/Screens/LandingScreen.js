@@ -14,7 +14,25 @@ const FEATURES = [
 ];
 
 export default function LandingScreen({ navigation }) {
-  const { isDark, theme: C } = useTheme();
+  const { isDark, theme: C, setIsAdmin } = useTheme();
+
+  // Sync isAdmin từ userInfo đã lưu (khi app khởi động lại)
+  useEffect(() => {
+    const syncRole = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('userInfo');
+        if (raw) {
+          const user = JSON.parse(raw);
+          setIsAdmin(user?.role === 'Admin');
+        } else {
+          setIsAdmin(false);
+        }
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+    syncRole();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: C.bgApp }]}>

@@ -23,7 +23,10 @@ const userSchema = new mongoose.Schema({
     },
     highScore: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
-    tierName: { type: String, default: 'Đồng' }
+    tierName: { type: String, default: 'Đồng' },
+    loginStreak: { type: Number, default: 0 },
+    longestStreak: { type: Number, default: 0 },
+    lastLoginDate: { type: Date, default: null }
 }, { 
     timestamps: true 
 });

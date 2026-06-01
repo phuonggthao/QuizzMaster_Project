@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export default function AdminScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
-    const { theme: C } = useTheme();
+    const { theme: C, setIsAdmin } = useTheme();
     
     // State quản lý form câu hỏi
     const [gameType, setGameType] = useState('Quiz');
@@ -147,7 +147,7 @@ export default function AdminScreen({ navigation }) {
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Thêm vào hệ thống</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.logoutBtn} onPress={() => navigation.replace('Login')}>
+            <TouchableOpacity style={styles.logoutBtn} onPress={() => { setIsAdmin(false); navigation.replace('Login'); }}>
                 <Text style={[styles.logoutBtnText, { color: C.wrong }]}>Đăng xuất khỏi Admin</Text>
             </TouchableOpacity>
         </ScrollView>
