@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider } from './src/frontend/context/ThemeContext';
 
 // Import các màn hình
 import LoginScreen from './src/frontend/Screens/LoginScreen';
@@ -34,7 +35,7 @@ function UserTabs() {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          title: 'Trò Chơi 🎮',
+          title: 'Quizz Master 🎮',
           tabBarLabel: 'Trò Chơi',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🎮</Text>,
         }}
@@ -55,6 +56,8 @@ function UserTabs() {
 // 🚀 CẤU TRÚC ĐIỀU HƯỚNG GỐC
 export default function App() {
   return (
+    <ThemeProvider>
+
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator
@@ -94,5 +97,6 @@ export default function App() {
         />
       </Stack.Navigator>
     </NavigationContainer>
+    </ThemeProvider>
   );
 }

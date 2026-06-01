@@ -22,7 +22,11 @@ ipconfig -> đổi lại ip trong config.js
 
  npm install --save-dev @babel/core
 
+npx expo install expo-av @react-native-community/slider
   khi nạp dữ liệu câu hỏi thì cd src -> cd backend -> node seed.js
+
+  tk thao_aa mk 123
+  tkad  admin 123
 
   
 

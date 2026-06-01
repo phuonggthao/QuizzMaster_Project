@@ -1,4 +1,5 @@
 import express from 'express';
+import { ObjectId } from 'mongodb'; // Import ObjectId đúng cách
 import { register, login, getMe } from '../backend/Controller/authController.js';
 import { getGameQuestions } from '../backend/Service/gameLogicService.js';
 import { processGameOver, getGlobalLeaderboard } from '../backend/Service/scoreService.js';
@@ -7,17 +8,15 @@ import { addQuestion } from '../backend/Service/questionService.js';
 import upload from '../backend/Middleware/uploadCloudinary.js';
 import { getDb } from './mongoClient.js';
 
-console.log("✅ Routes đã được nạp!");
 const router = express.Router();
 
-// Auth
+// --- Auth Routes ---
 router.post('/auth/register', register);
 router.post('/auth/login', login);
 router.get('/auth/me', verifyToken, getMe);
 
-// Game
+// --- Game Routes ---
 router.get('/game/questions/:gameType', verifyToken, async (req, res) => {
-    console.log("Đã nhận request tại:", new Date().toLocaleTimeString());
     try {
         const questions = await getGameQuestions(req.params.gameType);
         res.status(200).json(questions || []);
@@ -39,60 +38,45 @@ router.post('/game/game-over', verifyToken, async (req, res) => {
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// --- Score & Leaderboard Routes ---
 router.get('/leaderboard/global', async (req, res) => {
     try {
-        const topPlayers = await getGlobalLeaderboard(); // Dùng tên hàm mới
+        const topPlayers = await getGlobalLeaderboard();
         res.status(200).json(topPlayers);
     } catch (error) {
         res.status(500).json({ message: "Không thể lấy bảng xếp hạng", error: error.message });
     }
 });
-router.get('/test', (req, res) => res.json({ message: "Server chạy tốt!" }));
 
-
-router.post('/game/score', async (req, res) => {
-    try {
-        // Nhận username thay vì userId
-        const { username, gameType, score } = req.body;
-        
-        console.log(`📥 Nhận dữ liệu điểm: Username ${username}, Game ${gameType}, Score ${score}`);
-
-        if (!username) {
-            return res.status(400).json({ error: "Thiếu thông tin username!" });
-        }
-
+// Update score dùng Token
 router.post('/auth/update-score', verifyToken, async (req, res) => {
     try {
-        // req.user.id được lấy từ verifyToken (middleware)
-        const { score } = req.body; 
-        
-        console.log(`📥 Nhận dữ liệu điểm: UserID ${req.user.id}, Score ${score}`);
-
+        const { score } = req.body;
         const db = getDb();
-        // Cập nhật điểm vào collection 'users' hoặc 'scores' tùy theo DB của bạn
-        // Ở đây tôi dùng ví dụ update vào collection users
         const result = await db.collection('users').updateOne(
-            { _id: new require('mongodb').ObjectId(req.user.id) }, 
-            { $inc: { highScore: score } } // Cộng dồn điểm
+            { _id: new ObjectId(req.user.id) }, 
+            { $inc: { highScore: score } }
         );
-
         res.status(200).json({ message: "Cập nhật điểm thành công!", result });
     } catch (error) {
         res.status(500).json({ error: "Không thể lưu điểm: " + error.message });
     }
 });
 
-        const db = getDb(); // Lấy DB đã kết nối
-        const result = await db.collection('scores').insertOne({
-            username, // Lưu bằng username
-            gameType,
-            score,
-            createdAt: new Date()
-        });
+// Save score công khai (ví dụ dùng username)
+router.post('/game/score', async (req, res) => {
+    try {
+        const { username, gameType, score } = req.body;
+        if (!username) return res.status(400).json({ error: "Thiếu thông tin username!" });
 
+        const db = getDb();
+        const result = await db.collection('scores').insertOne({
+            username, gameType, score, createdAt: new Date()
+        });
         res.status(200).json({ message: "Lưu điểm thành công!", id: result.insertedId });
     } catch (error) {
         res.status(500).json({ error: "Không thể lưu điểm: " + error.message });
     }
 });
+
 export default router;

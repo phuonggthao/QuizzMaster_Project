@@ -11,13 +11,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import BASE_URL from '../config';
 
 const OPTION_COLORS = [Colors.optionA, Colors.optionB, Colors.optionC, Colors.optionD];
-const OPTION_SHAPES = ['▲', '◆', '●', '■'];
+
 
 export default function QuizScreen({ route, navigation }) {
-    const [user, setUser] = useState(null);
-    
     const { gameType } = route.params || { gameType: 'Quiz' };
-    const { questions, loading, error, fetchQuestions } = useQuiz(gameType);
+    const { questions, loading, error } = useQuiz(gameType);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -27,7 +25,29 @@ export default function QuizScreen({ route, navigation }) {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [timeLeft, setTimeLeft] = useState(10);
     const [scrambledWord, setScrambledWord] = useState("");
+    
     const timerRef = useRef(null);
+    const currentIndexRef = useRef(0);
+
+    useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+
+    // Cleanup khi component unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            // Logic reset game khi màn hình được focus
+            // Ví dụ: setCurrentIndex(0); setScore(0);
+            
+            return () => { 
+                // Logic cleanup khi rời khỏi màn hình
+            };
+        }, [])
+    );
 
     const scramble = (word) => {
         if (!word) return "";
@@ -38,47 +58,59 @@ export default function QuizScreen({ route, navigation }) {
         }
         return arr.join('');
     };
-    useFocusEffect(
-        useCallback(() => {
-            const fetchProfile = async () => {
-                try {
-        const token = await AsyncStorage.getItem('userToken');
-        const response = await fetch(`${BASE_URL}/auth/profile`, { // Gọi đúng endpoint lấy profile
-            method: 'GET', // Thường là GET
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-            }
-        });
-                    const data = await response.json();
-                    if (response.ok) {
-                        setUser(data.user);
-                    } else {
-                        Alert.alert("Lỗi", "Không thể tải thông tin hồ sơ.");
-                    }
-                } catch (err) {
-                    console.error(err);
-                } finally {
-                    setLoading(false);
-                }
-            };
 
-            fetchProfile();
-            
-            // Cleanup function nếu cần
-            return () => {};
-        }, []) // Dependency array
-    );
+    const updateScoreOnServer = async (finalScore) => {
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            await fetch(`${BASE_URL}/auth/update-score`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: finalScore })
+            });
+        } catch (error) { console.error("Lỗi cập nhật điểm:", error); }
+    };
+
+    const nextQuestion = useCallback(async (currentScore) => {
+        if (!questions) return;
+        const nextIndex = currentIndexRef.current + 1;
+        if (nextIndex < questions.length) {
+            setAnswered(false); 
+            setSelectedAnswer(null); 
+            setTextInput('');
+            setIsFlipped(false); 
+            setTimeLeft(10); 
+            setCurrentIndex(nextIndex);
+        } else {
+            await updateScoreOnServer(currentScore);
+            Alert.alert("🏁 Kết Thúc!", `Điểm của bạn: ${currentScore}`, [
+                { text: "Về trang chủ", onPress: () => navigation.replace('Home') }
+            ]);
+        }
+    }, [questions, navigation]);
+
+    const handleTimeOut = useCallback(() => {
+        if (answered) return;
+        setAnswered(true);
+        Alert.alert("⏳ Hết Giờ!", `Đáp án: ${questions[currentIndex]?.correctAnswer}`, [
+            { text: "Tiếp tục", onPress: () => nextQuestion(score) }
+        ]);
+    }, [answered, currentIndex, questions, score, nextQuestion]);
 
     useEffect(() => {
-        // Kiểm tra xem đã có token chưa
-        const checkAuth = async () => {
-            const token = await AsyncStorage.getItem('token');
-            console.log("DEBUG: Token hiện tại là:", token);
-            fetchQuestions();
-        };
-        checkAuth();
+        if (questions.length > 0 && !loading && !answered) {
+            timerRef.current = setInterval(() => {
+                setTimeLeft((prev) => {
+                    if (prev <= 1) { 
+                        clearInterval(timerRef.current); 
+                        handleTimeOut(); 
+                        return 0; 
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
         return () => clearInterval(timerRef.current);
-    }, []);
+    }, [currentIndex, questions, loading, answered, handleTimeOut]);
 
     useEffect(() => {
         if (questions[currentIndex] && gameType === 'WordScramble') {
@@ -86,113 +118,57 @@ export default function QuizScreen({ route, navigation }) {
         }
     }, [currentIndex, questions, gameType]);
 
-    useEffect(() => {
-        if (questions.length > 0 && !loading) {
-            setTimeLeft(10);
-            setAnswered(false);
-            setSelectedAnswer(null);
-            if (timerRef.current) clearInterval(timerRef.current);
-            timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        handleTimeOut();
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
-        return () => clearInterval(timerRef.current);
-    }, [currentIndex, questions, loading]);
-
-    const updateScoreOnServer = async (finalScore) => {
-    try {
-        const token = await AsyncStorage.getItem('userToken');
-        await fetch(`${BASE_URL}/auth/update-score`, { // Thay đường dẫn API theo server của bạn
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ score: score })
-        });
-    } catch (error) {
-        console.error("Lỗi cập nhật điểm:", error);
-    }
-};
-
-    const handleTimeOut = () => {
-        if (answered) return;
+    const handleAnswer = (userAnswer) => {
+        // 1. Kiểm tra an toàn dữ liệu
+        const currentQ = questions[currentIndex];
+        if (answered || !currentQ) return;
+        
+        // 2. Dừng timer ngay lập tức
+        if (timerRef.current) clearInterval(timerRef.current);
+        
         setAnswered(true);
-        Alert.alert("⏳ Hết Giờ!", `Đáp án đúng: ${questions[currentIndex]?.correctAnswer}`, [
-            { text: "Tiếp tục", onPress: () => nextQuestion(score) }
-        ]);
+        // Ưu tiên sử dụng userAnswer được truyền vào từ UI
+        const selected = userAnswer !== undefined ? userAnswer : textInput;
+        setSelectedAnswer(selected);
+        
+        const correct = String(currentQ.correctAnswer).trim().toLowerCase();
+        const input = String(selected).trim().toLowerCase();
+        const isCorrect = input === correct;
+        
+        const newScore = isCorrect ? score + 10 : score;
+        if (isCorrect) setScore(newScore);
+        
+        // 3. Sử dụng delay để người dùng nhìn thấy màu sắc (nếu cần) trước khi Alert bật lên
+        setTimeout(() => {
+            Alert.alert(
+                isCorrect ? "🎉 Chính Xác!" : "❌ Sai rồi!", 
+                isCorrect ? "+10 điểm" : `Đáp án: ${currentQ.correctAnswer}`, 
+                [{ text: "Tiếp theo", onPress: () => nextQuestion(newScore) }],
+                { cancelable: false } // Ngăn người dùng tắt Alert bằng cách chạm ra ngoài
+            );
+        }, 300);
     };
-
-    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /><Text style={styles.loadingText}>Đang tải...</Text></View>;
-
-    if (error || questions.length === 0) {
-        return (
-            <View style={styles.center}>
-                <Text style={styles.errorEmoji}>😕</Text>
-                <Text style={styles.errorText}>Lỗi: {error || "Không có dữ liệu! Kiểm tra Login/Token."}</Text>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}><Text style={styles.backBtnText}>← Quay lại</Text></TouchableOpacity>
-            </View>
-        );
-    }
 
     const currentQuestion = questions[currentIndex];
     const progress = (currentIndex + 1) / questions.length;
     const timerColor = timeLeft <= 3 ? Colors.wrong : timeLeft <= 6 ? Colors.warning : Colors.correct;
 
-    const handleAnswer = (userAnswer) => {
-        if (answered) return;
-        if (timerRef.current) clearInterval(timerRef.current);
-        setAnswered(true);
-        setSelectedAnswer(userAnswer);
-        const isCorrect = String(userAnswer || textInput).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
-        const newScore = isCorrect ? score + 10 : score;
-        if (isCorrect) setScore(newScore);
-        setTimeout(() => {
-            Alert.alert(isCorrect ? "🎉 Chính Xác!" : "❌ Sai rồi!", isCorrect ? "+10 điểm" : `Đáp án: ${currentQuestion.correctAnswer}`, 
-            [{ text: "Tiếp theo", onPress: () => nextQuestion(newScore) }]);
-        }, 400);
-    };
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+    if (error) return <View style={styles.center}><Text style={styles.errorText}>Lỗi: {error}</Text></View>;
+    
+    // Nếu vẫn chưa có câu hỏi sau khi loading kết thúc
+    if (!currentQuestion) {
+    return (
+        <View style={styles.center}>
+            <Text style={styles.errorText}>Không tìm thấy câu hỏi nào cho thể loại này!</Text>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <Text style={styles.backBtnText}>Quay lại</Text>
+            </TouchableOpacity>
+        </View>
+    );
+}
 
-    const nextQuestion = (currentScore) => {
-        console.log("DEBUG: Điểm gửi lên server là:", currentScore);
-
-    if (currentIndex < questions.length - 1) {
-        setCurrentIndex(prev => prev + 1); 
-        setTextInput(''); 
-        setIsFlipped(false);
-    } else {
-        // --- CHỖ NÀY ĐÂY ---
-        // Gọi hàm cập nhật điểm trước khi chuyển màn hình
-        updateScoreOnServer(
-            currentScore).then(() => {
-            Alert.alert("🏁 Kết Thúc!", `Điểm của bạn: ${currentScore}`, [
-                { 
-                    text: "Về trang chủ", 
-                    onPress: () => navigation.replace('Home') 
-                }
-            ]);
-        });
-    }
-};
-
-
-
-    const getOptionStyle = (item, index) => {
-        const base = [styles.optionBtn, { backgroundColor: OPTION_COLORS[index % 4] }];
-        if (!answered) return base;
-        if (String(item).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase()) {
-            return [...base, styles.optionCorrect];
-        }
-        if (item === selectedAnswer) return [...base, styles.optionWrong];
-        return [...base, styles.optionDimmed];
-    };
+    
 
     const renderGameUI = () => {
        console.log("DEBUG: Dữ liệu câu hỏi hiện tại:", JSON.stringify(currentQuestion, null, 2)); 
@@ -247,7 +223,28 @@ export default function QuizScreen({ route, navigation }) {
                     </View>
                 </View>
             );
+            case 'Matching':
+    return (
+        <View style={styles.uiContainer}>
+            <View style={styles.questionCard}>
+                <Text style={styles.questionText}>Hãy nối các cặp từ sau:</Text>
+            </View>
 
+            {/* Render danh sách các cặp từ mảng pairs */}
+            <View style={{ gap: 10 }}>
+                {currentQuestion.pairs && currentQuestion.pairs.map((item, index) => (
+                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={[styles.optionBtn, { backgroundColor: Colors.primary, width: '45%' }]}>
+                            <Text style={{ color: '#fff' }}>{item.term}</Text>
+                        </View>
+                        <View style={[styles.optionBtn, { backgroundColor: Colors.accent, width: '45%' }]}>
+                            <Text style={{ color: '#fff' }}>{item.definition}</Text>
+                        </View>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
 
             case 'Flashcard':
                 return (
@@ -382,12 +379,7 @@ export default function QuizScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: Colors.bgDark,
-        // Ép padding nếu là Android thì lấy chiều cao StatusBar, iOS thì để 20-40 tùy đời máy
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
-    },
+    
     container: { flex: 1, backgroundColor: Colors.bgDark },
     center: {
         flex: 1, backgroundColor: Colors.bgDark,

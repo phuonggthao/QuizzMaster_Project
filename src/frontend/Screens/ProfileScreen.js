@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    ActivityIndicator, Alert, StatusBar, ScrollView
+    ActivityIndicator, Alert, Switch, StatusBar, ScrollView
 } from 'react-native';
+import { SoundManager } from '../Utils/SoundManager';
+import { useTheme } from '../context/ThemeContext'; // Import hook này
+import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config';
 import { Colors } from '../Styles/Colors';
@@ -16,8 +19,10 @@ const TIER_CONFIG = {
 };
 
 export default function ProfileScreen({ navigation }) {
+    const [musicEnabled, setMusicEnabled] = useState(false);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+   
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -52,6 +57,15 @@ export default function ProfileScreen({ navigation }) {
         ]);
     };
 
+    const toggleMusic = () => {
+    if (musicEnabled) {
+        SoundManager.stopBackgroundMusic();
+    } else {
+        SoundManager.playBackgroundMusic();
+    }
+    setMusicEnabled(!musicEnabled);
+};
+
     if (loading) {
         return (
             <View style={styles.center}>
@@ -67,9 +81,10 @@ export default function ProfileScreen({ navigation }) {
 
     return (
         <SafeAreaView style={styles.container}>
+             
             <StatusBar barStyle="light-content" backgroundColor={Colors.bgDark} />
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
+           
                 {/* Avatar + tên */}
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarRing}>
@@ -121,6 +136,30 @@ export default function ProfileScreen({ navigation }) {
                         {(user?.highScore || 0) % 20}/{20} điểm để lên cấp tiếp theo
                     </Text>
                 </View>
+                
+
+                
+                {/* 2. Phần Cài đặt Âm thanh (Mới thêm vào đây) */}
+                <View style={[styles.levelCard, { marginTop: 20 }]}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 15 }}>Cài đặt</Text>
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+                        <Text style={{ color: '#ccc' }}>Nhạc nền</Text>
+                        <Switch value={musicEnabled} onValueChange={toggleMusic} />
+                        
+                    </View>
+                
+
+                    <Text style={{ color: '#ccc', marginBottom: 5 }}>Âm lượng</Text>
+                    <Slider
+                        style={{ width: '100%', height: 40 }}
+                        minimumValue={0}
+                        maximumValue={1}
+                        onValueChange={(val) => SoundManager.setVolume(val)}
+                    />
+                </View>
+
+                
 
                 {/* Logout */}
                 <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
@@ -130,9 +169,17 @@ export default function ProfileScreen({ navigation }) {
             </ScrollView>
         </SafeAreaView>
     );
+    
 }
 
 const styles = StyleSheet.create({
+
+    settingRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    marginBottom: 15 
+  },
     container: { flex: 1, backgroundColor: Colors.bgDark },
     center: { flex: 1, backgroundColor: Colors.bgDark, justifyContent: 'center', alignItems: 'center' },
     scroll: { paddingHorizontal: 20, paddingBottom: 40 },
