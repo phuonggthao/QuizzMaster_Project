@@ -143,7 +143,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Duck Race card */}
+          {/* Small card top */}
           <View style={[styles.smallCardTop, { backgroundColor: C.bgCard, borderColor: C.border }]}>
             <View style={[styles.modeBadge, { backgroundColor: smallModes[0].badgeBg, alignSelf: 'flex-start', marginBottom: 8 }]}>
               <Text style={[styles.modeBadgeText, { color: smallModes[0].badgeColor }]}>{smallModes[0].badge}</Text>

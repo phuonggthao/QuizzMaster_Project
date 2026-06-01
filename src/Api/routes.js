@@ -109,6 +109,27 @@ router.post('/game/score', async (req, res) => {
             return res.status(400).json({ error: "Thiếu thông tin username!" });
         }
 
+router.post('/auth/update-score', verifyToken, async (req, res) => {
+    try {
+        // req.user.id được lấy từ verifyToken (middleware)
+        const { score } = req.body; 
+        
+        console.log(`📥 Nhận dữ liệu điểm: UserID ${req.user.id}, Score ${score}`);
+
+        const db = getDb();
+        // Cập nhật điểm vào collection 'users' hoặc 'scores' tùy theo DB của bạn
+        // Ở đây tôi dùng ví dụ update vào collection users
+        const result = await db.collection('users').updateOne(
+            { _id: new require('mongodb').ObjectId(req.user.id) }, 
+            { $inc: { highScore: score } } // Cộng dồn điểm
+        );
+
+        res.status(200).json({ message: "Cập nhật điểm thành công!", result });
+    } catch (error) {
+        res.status(500).json({ error: "Không thể lưu điểm: " + error.message });
+    }
+});
+
         const db = getDb(); // Lấy DB đã kết nối
         const result = await db.collection('scores').insertOne({
             username, // Lưu bằng username

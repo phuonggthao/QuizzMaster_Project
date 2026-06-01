@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ActivityIndicator, StyleSheet,
   TouchableOpacity, Alert,
@@ -66,7 +66,8 @@ export default function QuizScreen({ route, navigation }) {
     }
     // LuckyNumber không cần timer
     if (gameType === 'LuckyNumber') return;
-    if (timerRef.current) clearInterval(timerRef.current); timerRef.current = setInterval(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
@@ -494,7 +495,7 @@ export default function QuizScreen({ route, navigation }) {
                 { color: isTimeOut ? '#D97706' : isCorrectThisTurn ? '#15803D' : '#B91C1C' },
               ]}
             >
-            {isTimeOut
+              {isTimeOut
                 ? `Đáp án đúng: ${currentQuestion.correctAnswer}`
                 : isCorrectThisTurn
                   ? combo >= 3
